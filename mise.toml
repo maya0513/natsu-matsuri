@@ -1,0 +1,83 @@
+[tasks.install]
+description = "依存関係をインストール"
+run = "pnpm install"
+
+[tasks.dev]
+description = "バックエンドとフロントエンドを同時起動"
+run = "pnpm dev"
+
+[tasks."dev:api"]
+description = "バックエンドのみ起動"
+run = "pnpm dev:api"
+
+[tasks."dev:web"]
+description = "フロントエンドのみ起動"
+run = "pnpm dev:web"
+
+[tasks.build]
+description = "全パッケージをビルド"
+run = "pnpm build"
+
+[tasks.test]
+description = "全テストを実行"
+run = "pnpm test"
+
+[tasks."test:api"]
+description = "バックエンドのテストを実行"
+run = "pnpm --filter @fooweb/backend test"
+
+[tasks."test:e2e"]
+description = "E2Eテストを実行"
+run = "pnpm --filter @fooweb/frontend test:e2e"
+
+[tasks."test:coverage"]
+description = "カバレッジ付きでテストを実行"
+run = "pnpm --filter @fooweb/backend test:coverage"
+
+[tasks.lint]
+description = "リントを実行"
+run = "pnpm lint"
+
+[tasks.format]
+description = "コードフォーマット"
+run = "pnpm format"
+
+[tasks."db:generate"]
+description = "Drizzleマイグレーションファイル生成"
+run = "pnpm db:generate"
+
+[tasks."db:migrate"]
+description = "データベースマイグレーション実行"
+run = "pnpm db:migrate"
+
+[tasks."db:studio"]
+description = "Drizzle Studioを起動"
+run = "pnpm db:studio"
+
+[tasks."docker:up"]
+description = "PostgreSQLを起動"
+run = "sudo docker-compose up -d"
+
+[tasks."docker:down"]
+description = "PostgreSQLを停止"
+run = "sudo docker-compose down"
+
+[tasks."docker:logs"]
+description = "PostgreSQLのログを表示"
+run = "sudo docker-compose logs -f postgres"
+
+[tasks.setup]
+description = "プロジェクトの初期セットアップ"
+depends = ["install", "docker:up"]
+run = [
+    "pnpm db:migrate",
+    "echo '✅ セットアップ完了！mise dev で開発を開始できます'",
+]
+
+[tasks.clean]
+description = "ビルド成果物とnode_modulesを削除"
+run = [
+    "rm -rf packages/*/node_modules",
+    "rm -rf packages/*/dist",
+    "rm -rf node_modules",
+]

@@ -1,0 +1,28 @@
+{
+  "name": "fooweb",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --parallel --filter './packages/*' dev",
+    "dev:api": "pnpm --filter @fooweb/backend dev",
+    "dev:web": "pnpm --filter @fooweb/frontend dev",
+    "build": "pnpm --filter './packages/*' build",
+    "test": "pnpm --filter './packages/*' test",
+    "test:e2e": "pnpm --filter @fooweb/frontend test:e2e",
+    "lint": "pnpm --filter './packages/*' lint",
+    "format": "prettier --write .",
+    "db:generate": "pnpm --filter @fooweb/backend db:generate",
+    "db:migrate": "pnpm --filter @fooweb/backend db:migrate",
+    "db:studio": "pnpm --filter @fooweb/backend db:studio"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}
