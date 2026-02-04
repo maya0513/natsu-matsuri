@@ -63,6 +63,12 @@ const Login: React.FC = () => {
         </button>
       </form>
 
+      <p className="mt-2">
+        <a href="/request-password-reset" className="text-sm text-blue-600 underline">
+          パスワードをお忘れですか？
+        </a>
+      </p>
+
       <p className="mt-4">
         アカウントをお持ちでない方は{' '}
         <a href="/register" className="text-blue-600 underline">新規登録</a>

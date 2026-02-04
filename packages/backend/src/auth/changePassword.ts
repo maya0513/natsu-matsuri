@@ -31,7 +31,7 @@ const validateChangePasswordInput = (
 /**
  * 副作用関数: パスワード更新
  */
-const updateUserPassword = async (
+export const updateUserPassword = async (
   userId: string,
   newPassword: string
 ): Promise<Result<void, string>> => {

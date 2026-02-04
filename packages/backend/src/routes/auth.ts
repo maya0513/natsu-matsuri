@@ -4,6 +4,9 @@ import { createUser } from '../auth/register.js'
 import { authenticateUser, createSession, validateSession, deleteSession } from '../auth/session.js'
 import { changePassword } from '../auth/changePassword.js'
 import { deleteAccount } from '../auth/deleteAccount.js'
+import { requestPasswordReset } from '../auth/requestPasswordReset.js'
+import { resetPassword } from '../auth/resetPassword.js'
+import { ConsoleEmailService } from '../lib/email.js'
 
 const app = new OpenAPIHono()
 
@@ -36,6 +39,15 @@ const ChangePasswordRequestSchema = z.object({
 
 const DeleteAccountRequestSchema = z.object({
   password: z.string().min(1).openapi({ example: 'password123' }),
+})
+
+const RequestPasswordResetSchema = z.object({
+  email: z.string().email().openapi({ example: 'user@example.com' }),
+})
+
+const ResetPasswordSchema = z.object({
+  token: z.string().min(1).openapi({ example: 'reset_token_here' }),
+  newPassword: z.string().min(8).openapi({ example: 'new_password_123' }),
 })
 
 // POST /api/auth/register
@@ -365,6 +377,111 @@ app.openapi(deleteAccountRoute, async (c) => {
 
   deleteCookie(c, 'session_id', { path: '/' })
   return c.json({ message: 'Account deleted successfully' }, 200)
+})
+
+// POST /api/auth/request-password-reset
+const requestPasswordResetRoute = createRoute({
+  method: 'post',
+  path: '/request-password-reset',
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: RequestPasswordResetSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            message: z.string(),
+          }),
+        },
+      },
+      description: 'Password reset email sent (if account exists)',
+    },
+    400: {
+      content: {
+        'application/json': {
+          schema: ErrorSchema,
+        },
+      },
+      description: 'Invalid input',
+    },
+  },
+})
+
+app.openapi(requestPasswordResetRoute, async (c) => {
+  const { email } = c.req.valid('json')
+  const emailService = new ConsoleEmailService()
+
+  const result = await requestPasswordReset({ email }, emailService)
+
+  if (!result.success) {
+    return c.json({ error: result.error }, 400)
+  }
+
+  return c.json(
+    {
+      message: 'If an account with that email exists, a password reset link has been sent.',
+    },
+    200
+  )
+})
+
+// POST /api/auth/reset-password
+const resetPasswordRoute = createRoute({
+  method: 'post',
+  path: '/reset-password',
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: ResetPasswordSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            message: z.string(),
+          }),
+        },
+      },
+      description: 'Password reset successfully',
+    },
+    400: {
+      content: {
+        'application/json': {
+          schema: ErrorSchema,
+        },
+      },
+      description: 'Invalid token or input',
+    },
+  },
+})
+
+app.openapi(resetPasswordRoute, async (c) => {
+  const { token, newPassword } = c.req.valid('json')
+
+  const result = await resetPassword({ token, newPassword })
+
+  if (!result.success) {
+    return c.json({ error: result.error }, 400)
+  }
+
+  return c.json(
+    {
+      message: 'Password has been reset successfully. Please log in with your new password.',
+    },
+    200
+  )
 })
 
 export default app

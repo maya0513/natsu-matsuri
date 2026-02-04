@@ -6,6 +6,8 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Index from './pages/Index'
 import ChangePassword from './pages/ChangePassword'
+import { RequestPasswordReset } from './pages/RequestPasswordReset'
+import { ResetPassword } from './pages/ResetPassword'
 import './index.css'
 
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -45,6 +47,22 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             }
           />
           <Route path="/change-password" element={<ChangePassword />} />
+          <Route
+            path="/request-password-reset"
+            element={
+              <PublicRoute>
+                <RequestPasswordReset />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/reset-password"
+            element={
+              <PublicRoute>
+                <ResetPassword />
+              </PublicRoute>
+            }
+          />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
