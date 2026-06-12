@@ -12,10 +12,12 @@ export type Direction = "up" | "down" | "left" | "right";
 /** 屋台の識別子（売買2種 + ミニゲーム4種） */
 export type StallId = "takoyaki" | "ringoame" | "kingyo" | "shateki" | "yoyo" | "kuji";
 
-/** 持ち物になり得るアイテム。食べ物のラインナップは M3 で確定・拡張する */
+/** 持ち物になり得るアイテム */
 export type ItemId =
   | "takoyaki"
+  | "ramune"
   | "ringoame"
+  | "wataame"
   | "goldfish"
   | "yoyo-balloon"
   | "kuji-prize-small"
@@ -47,7 +49,10 @@ export type GameState = {
   /** ゲーム経過秒 */
   readonly time: number;
   readonly player: Player;
-  readonly money: number;
+  /**
+   * 持ち物。お金の概念はない（価格表示は雰囲気のための飾りで、
+   * 買う・遊ぶの選択にコストは発生しない）
+   */
   readonly inventory: readonly ItemId[];
   readonly mode: Mode;
   readonly fireworks: FireworksState;

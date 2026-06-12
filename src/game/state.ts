@@ -1,4 +1,3 @@
-import { INITIAL_MONEY } from "./constants";
 import { initialFireworks } from "./fireworks";
 import type { GameState } from "./types";
 
@@ -10,7 +9,6 @@ export const initialGameState: GameState = {
     facing: "up",
     moving: false,
   },
-  money: INITIAL_MONEY,
   inventory: [],
   mode: { kind: "walk" },
   fireworks: initialFireworks,

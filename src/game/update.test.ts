@@ -50,6 +50,29 @@ describe("update（固定タイムステップ統合）", () => {
     expect(events).toHaveLength(1);
   });
 
+  it("屋台の近くで interact すると dialog モードになる", () => {
+    const nearTakoyaki: GameState = {
+      ...initialGameState,
+      player: { ...initialGameState.player, pos: { x: -4, y: 6 } },
+    };
+    const { state } = run(nearTakoyaki, { move: { x: 0, y: 0 }, interact: true }, 1 / 60);
+    expect(state.mode).toEqual({ kind: "dialog", stallId: "takoyaki" });
+  });
+
+  it("屋台から遠い場所で interact しても何も起きない", () => {
+    const { state } = run(initialGameState, { move: { x: 0, y: 0 }, interact: true }, 1 / 60);
+    expect(state.mode).toEqual({ kind: "walk" });
+  });
+
+  it("dialog モード中の interact では遷移しない（UI 側が処理）", () => {
+    const inDialog: GameState = {
+      ...initialGameState,
+      mode: { kind: "dialog", stallId: "takoyaki" },
+    };
+    const { state } = run(inDialog, { move: { x: 0, y: 0 }, interact: true }, 1 / 60);
+    expect(state.mode).toEqual({ kind: "dialog", stallId: "takoyaki" });
+  });
+
   it("状態は不変（入力の state オブジェクトを破壊しない）", () => {
     const frozen = Object.freeze(structuredClone(initialGameState));
     const intent: Intent = { move: { x: 1, y: 1 }, interact: false };
