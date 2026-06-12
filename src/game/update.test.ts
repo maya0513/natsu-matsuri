@@ -1,0 +1,58 @@
+import { describe, expect, it } from "vitest";
+import { FIREWORKS_FIRST_LAUNCH, PLAYER_SPEED } from "./constants";
+import { initialGameState } from "./state";
+import type { GameState, Intent, Rng } from "./types";
+import { update } from "./update";
+
+const idle: Intent = { move: { x: 0, y: 0 }, interact: false };
+const rng: Rng = () => 0.5;
+
+const run = (state: GameState, intent: Intent, dt: number) => update(state, intent, dt, rng);
+
+describe("update（固定タイムステップ統合）", () => {
+  it("経過時間が dt ずつ積算される", () => {
+    const { state } = run(initialGameState, idle, 1 / 60);
+    expect(state.time).toBeCloseTo(1 / 60);
+  });
+
+  it("walk モードでは移動入力が反映される", () => {
+    const intent: Intent = { move: { x: 1, y: 0 }, interact: false };
+    const { state } = run(initialGameState, intent, 0.5);
+    expect(state.player.pos.x).toBeCloseTo(initialGameState.player.pos.x + PLAYER_SPEED * 0.5);
+  });
+
+  it("dialog モード中は移動しない", () => {
+    const inDialog: GameState = {
+      ...initialGameState,
+      mode: { kind: "dialog", stallId: "takoyaki" },
+    };
+    const intent: Intent = { move: { x: 1, y: 0 }, interact: false };
+    const { state } = run(inDialog, intent, 0.5);
+    expect(state.player.pos).toEqual(initialGameState.player.pos);
+  });
+
+  it("花火の打ち上げ時刻を跨ぐとイベントが届く", () => {
+    const before: GameState = {
+      ...initialGameState,
+      time: FIREWORKS_FIRST_LAUNCH - 0.01,
+    };
+    const { events } = run(before, idle, 0.02);
+    expect(events).toEqual([{ kind: "firework-launched", seed: 0.5 }]);
+  });
+
+  it("モードに関わらず花火は上がり続ける（dialog 中でも）", () => {
+    const before: GameState = {
+      ...initialGameState,
+      time: FIREWORKS_FIRST_LAUNCH - 0.01,
+      mode: { kind: "dialog", stallId: "takoyaki" },
+    };
+    const { events } = run(before, idle, 0.02);
+    expect(events).toHaveLength(1);
+  });
+
+  it("状態は不変（入力の state オブジェクトを破壊しない）", () => {
+    const frozen = Object.freeze(structuredClone(initialGameState));
+    const intent: Intent = { move: { x: 1, y: 1 }, interact: false };
+    expect(() => run(frozen as GameState, intent, 0.1)).not.toThrow();
+  });
+});
