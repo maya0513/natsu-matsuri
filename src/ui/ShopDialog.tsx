@@ -51,11 +51,10 @@ export const ShopDialog = ({ stallId, dispatch }: Props) => {
           <p class="text-sm text-slate-300">1 回 ¥{MINIGAME_FEE} だよ。遊んでいく？</p>
           <button
             type="button"
-            disabled
-            class="rounded bg-rose-500 px-3 py-1 text-sm font-bold text-slate-950 disabled:opacity-40"
-            title="ミニゲームは準備中"
+            class="rounded bg-rose-500 px-3 py-1 text-sm font-bold text-slate-950 hover:bg-rose-400"
+            onClick={() => dispatch({ kind: "start-minigame" })}
           >
-            あそぶ（準備中）
+            あそぶ
           </button>
         </div>
       )}

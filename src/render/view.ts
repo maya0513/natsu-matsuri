@@ -2,6 +2,7 @@
 import * as THREE from "three";
 import type { GameState } from "../game/types";
 import { createCamera, followPlayer } from "./camera";
+import { createMinigameOverlay } from "./minigameOverlay";
 import { createScene } from "./scene";
 import { createPlayerSprite } from "./sprites";
 import { loadGameTextures } from "./textures";
@@ -23,6 +24,7 @@ export const createGameView = async (container: HTMLElement): Promise<GameView> 
   const camera = createCamera(window.innerWidth / window.innerHeight);
   const player = createPlayerSprite(textures.player);
   scene.add(player.mesh);
+  const overlay = createMinigameOverlay(container);
 
   const onResize = () => {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -36,9 +38,11 @@ export const createGameView = async (container: HTMLElement): Promise<GameView> 
       player.sync(state.player, state.time);
       followPlayer(camera, state.player.pos);
       renderer.render(scene, camera);
+      overlay.draw(state);
     },
     dispose: () => {
       window.removeEventListener("resize", onResize);
+      overlay.dispose();
       renderer.dispose();
       renderer.domElement.remove();
     },

@@ -49,3 +49,51 @@ describe("applyAction: buy（お金は消費しない）", () => {
     expect(s.inventory).toEqual([]);
   });
 });
+
+describe("applyAction: ミニゲーム", () => {
+  it("ミニゲーム屋台のダイアログから start-minigame で開始", () => {
+    const s = applyAction(dialogAt("kingyo"), { kind: "start-minigame" });
+    expect(s.mode.kind).toBe("minigame");
+    if (s.mode.kind === "minigame") expect(s.mode.game.id).toBe("kingyo");
+  });
+
+  it("売買屋台のダイアログでは start-minigame は無効", () => {
+    const before = dialogAt("takoyaki");
+    expect(applyAction(before, { kind: "start-minigame" })).toBe(before);
+  });
+
+  it("minigame-press で押す操作（くじを引く）が動き、景品が持ち物へ", () => {
+    const inKuji: GameState = {
+      ...initialGameState,
+      mode: { kind: "minigame", game: { id: "kuji" } },
+    };
+    const s = applyAction(inKuji, { kind: "minigame-press", rng: () => 0.9 });
+    expect(s.inventory).toEqual(["kuji-prize-big"]);
+  });
+
+  it("exit-minigame で walk に戻る", () => {
+    const inKuji: GameState = {
+      ...initialGameState,
+      mode: { kind: "minigame", game: { id: "kuji" } },
+    };
+    const s = applyAction(inKuji, { kind: "exit-minigame" });
+    expect(s.mode).toEqual({ kind: "walk" });
+  });
+
+  it("retry-minigame で同じゲームが最初から", () => {
+    const worn: GameState = {
+      ...initialGameState,
+      mode: {
+        kind: "minigame",
+        game: { id: "kingyo", fishX: 0.7, dir: 1, poiLeft: 0, caught: 2 },
+      },
+    };
+    const s = applyAction(worn, { kind: "retry-minigame" });
+    if (s.mode.kind === "minigame" && s.mode.game.id === "kingyo") {
+      expect(s.mode.game.poiLeft).toBe(3);
+      expect(s.mode.game.caught).toBe(0);
+    } else {
+      throw new Error("minigame モードのはず");
+    }
+  });
+});

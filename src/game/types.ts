@@ -27,11 +27,50 @@ export type ItemId =
 /** ミニゲームの種類 */
 export type MinigameId = "kingyo" | "shateki" | "yoyo" | "kuji";
 
-/** ゲーム全体のモード（判別共用体）。minigame の中身は M4 で拡張する */
+// --- ミニゲーム状態（すべて純粋に更新される） ---
+
+/** くじ引き: ボタンで引くだけ。last は直前の結果表示用 */
+export type KujiState = {
+  readonly id: "kuji";
+  readonly last?: ItemId;
+};
+
+/** ヨーヨー釣り: 0..1 を往復するマーカーを中央で止める */
+export type YoyoState = {
+  readonly id: "yoyo";
+  readonly t: number;
+  readonly dir: 1 | -1;
+  readonly last?: "hit" | "miss";
+};
+
+/** 金魚すくい: 泳ぐ金魚を狙う。ポイは 3 回で破れる */
+export type KingyoState = {
+  readonly id: "kingyo";
+  readonly fishX: number;
+  readonly dir: 1 | -1;
+  readonly poiLeft: number;
+  readonly caught: number;
+  readonly last?: "hit" | "miss";
+};
+
+/** 射的: 流れる照準で 3 つの的を狙う。弾は 3 発 */
+export type ShatekiState = {
+  readonly id: "shateki";
+  readonly aimX: number;
+  readonly dir: 1 | -1;
+  readonly shotsLeft: number;
+  /** 的が立っているか（3 つ） */
+  readonly targets: readonly [boolean, boolean, boolean];
+  readonly last?: "hit" | "miss";
+};
+
+export type MinigameState = KujiState | YoyoState | KingyoState | ShatekiState;
+
+/** ゲーム全体のモード（判別共用体） */
 export type Mode =
   | { readonly kind: "walk" }
   | { readonly kind: "dialog"; readonly stallId: StallId }
-  | { readonly kind: "minigame"; readonly game: MinigameId };
+  | { readonly kind: "minigame"; readonly game: MinigameState };
 
 export type Player = {
   readonly pos: Vec2;

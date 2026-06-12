@@ -73,6 +73,36 @@ describe("update（固定タイムステップ統合）", () => {
     expect(state.mode).toEqual({ kind: "dialog", stallId: "takoyaki" });
   });
 
+  it("minigame モードではマーカーが時間で進む", () => {
+    const s: GameState = {
+      ...initialGameState,
+      mode: { kind: "minigame", game: { id: "yoyo", t: 0, dir: 1 } },
+    };
+    const { state } = run(s, idle, 0.1);
+    expect(state.mode.kind).toBe("minigame");
+    if (state.mode.kind === "minigame" && state.mode.game.id === "yoyo") {
+      expect(state.mode.game.t).toBeGreaterThan(0);
+    }
+  });
+
+  it("minigame モードで interact すると press 扱いになり景品が持ち物へ", () => {
+    const s: GameState = {
+      ...initialGameState,
+      mode: { kind: "minigame", game: { id: "yoyo", t: 0.5, dir: 1 } },
+    };
+    const { state } = run(s, { move: { x: 0, y: 0 }, interact: true }, 1 / 60);
+    expect(state.inventory).toEqual(["yoyo-balloon"]);
+  });
+
+  it("minigame モード中は移動しない", () => {
+    const s: GameState = {
+      ...initialGameState,
+      mode: { kind: "minigame", game: { id: "kuji" } },
+    };
+    const { state } = run(s, { move: { x: 1, y: 0 }, interact: false }, 0.5);
+    expect(state.player.pos).toEqual(initialGameState.player.pos);
+  });
+
   it("状態は不変（入力の state オブジェクトを破壊しない）", () => {
     const frozen = Object.freeze(structuredClone(initialGameState));
     const intent: Intent = { move: { x: 1, y: 1 }, interact: false };

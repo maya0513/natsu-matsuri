@@ -1,10 +1,11 @@
-// UI 層のルート: HUD・話しかけプロンプト・ダイアログ・持ち物画面
+// UI 層のルート: HUD・話しかけプロンプト・ダイアログ・ミニゲーム・持ち物画面
 import { useSignal } from "@preact/signals";
 import { useEffect } from "preact/hooks";
 import type { GameAction } from "../game/actions";
-import { ShopDialog } from "./ShopDialog";
 import { InventoryPanel } from "./InventoryPanel";
-import { modeSig, nearbyStallSig } from "./bridge";
+import { MinigamePanel } from "./MinigamePanel";
+import { ShopDialog } from "./ShopDialog";
+import { dialogStallSig, minigameSig, nearbyStallSig } from "./bridge";
 
 type Props = {
   readonly dispatch: (action: GameAction) => void;
@@ -12,14 +13,16 @@ type Props = {
 
 export const App = ({ dispatch }: Props) => {
   const showInventory = useSignal(false);
-  const mode = modeSig.value;
+  const dialogStall = dialogStallSig.value;
+  const minigame = minigameSig.value;
   const nearby = nearbyStallSig.value;
 
-  // Esc でダイアログ/持ち物を閉じる
+  // Esc で持ち物 → ミニゲーム → ダイアログの順に閉じる
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       if (showInventory.peek()) showInventory.value = false;
+      else if (minigameSig.peek()) dispatch({ kind: "exit-minigame" });
       else dispatch({ kind: "close-dialog" });
     };
     window.addEventListener("keydown", onKey);
@@ -42,13 +45,14 @@ export const App = ({ dispatch }: Props) => {
       </div>
 
       {/* 話しかけプロンプト */}
-      {mode.kind === "walk" && nearby && (
+      {!dialogStall && !minigame && nearby && (
         <div class="absolute inset-x-0 bottom-10 mx-auto w-fit rounded bg-slate-950/80 px-4 py-2 text-sm text-slate-100">
           <kbd class="rounded bg-slate-700 px-1.5">E</kbd> で「{nearby.name}」に話しかける
         </div>
       )}
 
-      {mode.kind === "dialog" && <ShopDialog stallId={mode.stallId} dispatch={dispatch} />}
+      {dialogStall && <ShopDialog stallId={dialogStall} dispatch={dispatch} />}
+      {minigame && <MinigamePanel view={minigame} dispatch={dispatch} />}
       {showInventory.value && (
         <InventoryPanel
           onClose={() => {
