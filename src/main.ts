@@ -12,7 +12,7 @@ const MAX_FRAME_TIME = 0.25; // タブ復帰時のスパイラル防止
 const container = document.querySelector<HTMLElement>("#game");
 if (!container) throw new Error("#game が見つからない");
 
-const view = createGameView(container);
+const view = await createGameView(container);
 const input = createKeyboardInput();
 
 // M5 で音・花火演出のディスパッチ先になる

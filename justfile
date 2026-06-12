@@ -31,9 +31,9 @@ lint:
 fmt:
     pnpm exec oxfmt
 
-# スプライトシート等の全アセット再生成（M2 で実装）
+# スプライトシート等の全アセット再生成
 gen-assets:
-    pnpm exec vite-node tools/assets/generate.ts
+    node tools/assets/generate.ts
 
 # スモーク E2E（M6 で実装）
 e2e:
