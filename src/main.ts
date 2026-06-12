@@ -5,6 +5,7 @@ import { initialGameState } from "./game/state";
 import type { GameEvent, GameState } from "./game/types";
 import { update } from "./game/update";
 import { createKeyboardInput } from "./input/keyboard";
+import { combineInputs, createTouchInput, isTouchDevice } from "./input/touch";
 import { createGameView } from "./render/view";
 import { publish } from "./ui/bridge";
 import { mountUi } from "./ui/mount";
@@ -22,7 +23,9 @@ const audio = createAudio();
 const view = await createGameView(container, {
   onFireworkBurst: () => audio.play("burst"),
 });
-const input = createKeyboardInput();
+const input = isTouchDevice()
+  ? combineInputs(createKeyboardInput(), createTouchInput(uiRoot))
+  : createKeyboardInput();
 
 // autoplay 制限: 最初のユーザー操作で BGM を開始
 const startAudioOnce = (): void => {

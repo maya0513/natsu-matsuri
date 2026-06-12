@@ -35,10 +35,10 @@ fmt:
 gen-assets:
     node tools/assets/generate.ts
 
-# スモーク E2E（M6 で実装）
+# スモーク E2E
 e2e:
     pnpm exec playwright test
 
-# Cloudflare Pages へデプロイ（M6 で実装）
+# Cloudflare Pages へデプロイ（要: wrangler login か CLOUDFLARE_API_TOKEN）
 deploy: build
-    pnpm exec wrangler pages deploy dist
+    pnpm dlx wrangler pages deploy dist --project-name fooweb
