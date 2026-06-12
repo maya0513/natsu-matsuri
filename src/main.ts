@@ -1,4 +1,5 @@
-// 配線層: 固定タイムステップのゲームループで game(純粋) と render/input/ui(副作用) を繋ぐ
+// 配線層: 固定タイムステップのゲームループで game(純粋) と render/input/ui/audio(副作用) を繋ぐ
+import { createAudio } from "./audio";
 import { type GameAction, applyAction } from "./game/actions";
 import { initialGameState } from "./game/state";
 import type { GameEvent, GameState } from "./game/types";
@@ -14,30 +15,54 @@ const MAX_FRAME_TIME = 0.25; // タブ復帰時のスパイラル防止
 
 const container = document.querySelector<HTMLElement>("#game");
 if (!container) throw new Error("#game が見つからない");
-
 const uiRoot = document.querySelector<HTMLElement>("#ui");
 if (!uiRoot) throw new Error("#ui が見つからない");
 
-const view = await createGameView(container);
+const audio = createAudio();
+const view = await createGameView(container, {
+  onFireworkBurst: () => audio.play("burst"),
+});
 const input = createKeyboardInput();
+
+// autoplay 制限: 最初のユーザー操作で BGM を開始
+const startAudioOnce = (): void => {
+  audio.start();
+  window.removeEventListener("pointerdown", startAudioOnce);
+  window.removeEventListener("keydown", startAudioOnce);
+};
+window.addEventListener("pointerdown", startAudioOnce);
+window.addEventListener("keydown", startAudioOnce);
 
 // UI からの操作はキューに積み、ループの先頭で純粋に適用する
 const pendingActions: GameAction[] = [];
 const dispatch = (action: GameAction): void => {
   pendingActions.push(action);
 };
-mountUi(uiRoot, dispatch);
+mountUi(uiRoot, dispatch, () => audio.toggleMute());
 
-// M5 で音・花火演出のディスパッチ先になる
+let state: GameState = initialGameState;
+
+// イベント → 演出・音へのディスパッチ
 const handleEvents = (events: readonly GameEvent[]): void => {
   for (const e of events) {
-    if (e.kind === "firework-launched") {
-      console.debug("firework!", e.seed);
+    switch (e.kind) {
+      case "firework-launched":
+        view.spawnFirework(e.seed, state.time);
+        audio.play("launch");
+        break;
+      case "item-bought":
+        audio.play("buy");
+        break;
+      case "minigame-hit":
+        audio.play("hit");
+        break;
+      case "minigame-miss":
+        audio.play("miss");
+        break;
     }
   }
 };
 
-let state: GameState = initialGameState;
 let accumulator = 0;
 let last = performance.now();
 
@@ -46,7 +71,9 @@ const loop = (now: number): void => {
   last = now;
 
   for (const action of pendingActions.splice(0)) {
-    state = applyAction(state, action);
+    const result = applyAction(state, action);
+    state = result.state;
+    handleEvents(result.events);
   }
 
   const intent = input.poll();

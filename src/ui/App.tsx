@@ -9,10 +9,12 @@ import { dialogStallSig, minigameSig, nearbyStallSig } from "./bridge";
 
 type Props = {
   readonly dispatch: (action: GameAction) => void;
+  readonly toggleMute: () => boolean;
 };
 
-export const App = ({ dispatch }: Props) => {
+export const App = ({ dispatch, toggleMute }: Props) => {
   const showInventory = useSignal(false);
+  const muted = useSignal(false);
   const dialogStall = dialogStallSig.value;
   const minigame = minigameSig.value;
   const nearby = nearbyStallSig.value;
@@ -41,6 +43,16 @@ export const App = ({ dispatch }: Props) => {
           }}
         >
           もちもの
+        </button>
+        <button
+          type="button"
+          class="rounded-full border border-slate-500/50 bg-slate-950/80 px-3 py-1.5 text-slate-300 hover:bg-slate-800"
+          title={muted.value ? "音を出す" : "ミュート"}
+          onClick={() => {
+            muted.value = toggleMute();
+          }}
+        >
+          {muted.value ? "🔇" : "🔊"}
         </button>
       </div>
 

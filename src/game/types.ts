@@ -105,12 +105,16 @@ export type Intent = {
   readonly interact: boolean;
 };
 
-/** update が外界（描画・音）へ通知するイベント */
-export type GameEvent = {
-  readonly kind: "firework-launched";
-  /** 演出のバリエーション用シード（0〜1） */
-  readonly seed: number;
-};
+/** update / applyAction が外界（描画・音）へ通知するイベント */
+export type GameEvent =
+  | {
+      readonly kind: "firework-launched";
+      /** 演出のバリエーション用シード（0〜1） */
+      readonly seed: number;
+    }
+  | { readonly kind: "item-bought" }
+  | { readonly kind: "minigame-hit" }
+  | { readonly kind: "minigame-miss" };
 
 /** 固定タイムステップ 1 回分の更新結果 */
 export type UpdateResult = {

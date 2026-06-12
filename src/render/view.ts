@@ -2,6 +2,7 @@
 import * as THREE from "three";
 import type { GameState } from "../game/types";
 import { createCamera, followPlayer } from "./camera";
+import { createFireworksRenderer } from "./fireworks";
 import { createMinigameOverlay } from "./minigameOverlay";
 import { createScene } from "./scene";
 import { createPlayerSprite } from "./sprites";
@@ -9,10 +10,20 @@ import { loadGameTextures } from "./textures";
 
 export type GameView = {
   readonly render: (state: GameState) => void;
+  /** firework-launched イベント受信時に呼ぶ */
+  readonly spawnFirework: (seed: number, time: number) => void;
   readonly dispose: () => void;
 };
 
-export const createGameView = async (container: HTMLElement): Promise<GameView> => {
+export type GameViewOptions = {
+  /** 花火が破裂した瞬間のコールバック（SE 用） */
+  readonly onFireworkBurst?: () => void;
+};
+
+export const createGameView = async (
+  container: HTMLElement,
+  options: GameViewOptions = {},
+): Promise<GameView> => {
   const textures = await loadGameTextures();
 
   const renderer = new THREE.WebGLRenderer({ antialias: false });
@@ -25,6 +36,7 @@ export const createGameView = async (container: HTMLElement): Promise<GameView> 
   const player = createPlayerSprite(textures.player);
   scene.add(player.mesh);
   const overlay = createMinigameOverlay(container);
+  const fireworks = createFireworksRenderer(scene, options.onFireworkBurst);
 
   const onResize = () => {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -37,8 +49,12 @@ export const createGameView = async (container: HTMLElement): Promise<GameView> 
     render: (state) => {
       player.sync(state.player, state.time);
       followPlayer(camera, state.player.pos);
+      fireworks.update(state.time);
       renderer.render(scene, camera);
       overlay.draw(state);
+    },
+    spawnFirework: (seed, time) => {
+      fireworks.spawn(seed, time);
     },
     dispose: () => {
       window.removeEventListener("resize", onResize);

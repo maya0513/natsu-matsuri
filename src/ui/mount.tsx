@@ -3,6 +3,10 @@ import { render } from "preact";
 import type { GameAction } from "../game/actions";
 import { App } from "./App";
 
-export const mountUi = (root: HTMLElement, dispatch: (action: GameAction) => void): void => {
-  render(<App dispatch={dispatch} />, root);
+export const mountUi = (
+  root: HTMLElement,
+  dispatch: (action: GameAction) => void,
+  toggleMute: () => boolean,
+): void => {
+  render(<App dispatch={dispatch} toggleMute={toggleMute} />, root);
 };

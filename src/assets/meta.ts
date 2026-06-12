@@ -28,3 +28,15 @@ export const SHRINE_TEXTURE = { url: "/assets/shrine.png", w: 192, h: 128 } as c
 export const LANTERN_TEXTURE = { url: "/assets/lantern.png", w: 16, h: 24 } as const;
 export const PATH_TILE_TEXTURE = { url: "/assets/tile-path.png", size: 32 } as const;
 export const GROUND_TILE_TEXTURE = { url: "/assets/tile-ground.png", size: 32 } as const;
+
+/** 生成 WAV（BGM・SE）。tools/assets/sounds.ts と対応 */
+export const AUDIO = {
+  bgm: "/assets/bgm.wav",
+  launch: "/assets/se-launch.wav",
+  burst: "/assets/se-burst.wav",
+  hit: "/assets/se-hit.wav",
+  miss: "/assets/se-miss.wav",
+  buy: "/assets/se-buy.wav",
+} as const;
+
+export type SeName = Exclude<keyof typeof AUDIO, "bgm">;

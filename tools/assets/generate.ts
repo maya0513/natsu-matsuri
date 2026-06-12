@@ -10,6 +10,16 @@ import { drawPlayerSheet } from "./sprites/player.ts";
 import { drawStallSheet } from "./sprites/stalls.ts";
 import { drawLantern, drawShrine, drawTorii } from "./sprites/structures.ts";
 import { drawGroundTile, drawPathTile } from "./sprites/tiles.ts";
+import {
+  buildBgm,
+  buildSeBurst,
+  buildSeBuy,
+  buildSeHit,
+  buildSeLaunch,
+  buildSeMiss,
+} from "./sounds.ts";
+import { SAMPLE_RATE } from "./synth.ts";
+import { encodeWav } from "./wav.ts";
 
 const outDir = join(dirname(fileURLToPath(import.meta.url)), "../../public/assets");
 
@@ -17,6 +27,11 @@ const write = (name: string, canvas: PixelCanvas): void => {
   const scaled = upscale(canvas, ASSET_SCALE);
   writeFileSync(join(outDir, name), encodePng(scaled.width, scaled.height, scaled.data));
   console.log(`✓ ${name} (${scaled.width}x${scaled.height})`);
+};
+
+const writeWav = (name: string, samples: Float32Array): void => {
+  writeFileSync(join(outDir, name), encodeWav(SAMPLE_RATE, samples));
+  console.log(`✓ ${name} (${(samples.length / SAMPLE_RATE).toFixed(1)}s)`);
 };
 
 mkdirSync(outDir, { recursive: true });
@@ -27,4 +42,10 @@ write("shrine.png", drawShrine());
 write("lantern.png", drawLantern());
 write("tile-path.png", drawPathTile());
 write("tile-ground.png", drawGroundTile());
+writeWav("bgm.wav", buildBgm());
+writeWav("se-launch.wav", buildSeLaunch());
+writeWav("se-burst.wav", buildSeBurst());
+writeWav("se-hit.wav", buildSeHit());
+writeWav("se-miss.wav", buildSeMiss());
+writeWav("se-buy.wav", buildSeBuy());
 console.log("全アセット生成完了");
