@@ -13,7 +13,7 @@ export const createCamera = (aspect: number): THREE.PerspectiveCamera =>
 
 /** プレイヤー位置（ゲーム座標: x→x, y→z）にカメラを追従させる。地面の高低差に合わせて上下する */
 export const followPlayer = (camera: THREE.PerspectiveCamera, pos: Vec2): void => {
-  const ground = groundHeightAt(pos.x);
+  const ground = groundHeightAt(pos.x, pos.y);
   camera.position.set(pos.x + OFFSET.x, ground + OFFSET.y, pos.y + OFFSET.z);
   camera.lookAt(pos.x, ground + LOOK_HEIGHT, pos.y);
 };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAP_BOUNDS, PLAYER_SPEED } from "./constants";
+import { MAP_BOUNDS, PLAYER_SPEED, WORLD } from "./constants";
 import { movePlayer } from "./movement";
 import type { Player } from "./types";
 
@@ -43,5 +43,17 @@ describe("movePlayer", () => {
   it("マップ境界でクランプされる", () => {
     const p = movePlayer(at(MAP_BOUNDS.maxX, 0), { x: 1, y: 0 }, 10);
     expect(p.pos.x).toBe(MAP_BOUNDS.maxX);
+  });
+
+  it("石段の外では擁壁に阻まれ台地から河川敷へ抜けられない", () => {
+    const wallY = WORLD.stairZ1 + 5; // 石段の z 範囲外
+    const p = movePlayer(at(WORLD.plateauX, wallY), { x: -1, y: 0 }, 10);
+    expect(p.pos.x).toBe(WORLD.plateauX); // 台地の縁で止まる
+  });
+
+  it("石段の z 範囲内なら台地から河川敷へ下りられる", () => {
+    const stairY = (WORLD.stairZ0 + WORLD.stairZ1) / 2;
+    const p = movePlayer(at(WORLD.plateauX, stairY), { x: -1, y: 0 }, 10);
+    expect(p.pos.x).toBeLessThan(WORLD.bankX); // 河川敷側まで抜ける
   });
 });

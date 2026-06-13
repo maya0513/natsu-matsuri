@@ -43,8 +43,8 @@ describe("nearestStall", () => {
   });
 
   it("複数候補があれば最も近いものを返す", () => {
-    // 2 屋台の中間より kingyo 寄りの点
-    const found = nearestStall({ x: kingyo.pos.x * 0.6, y: kingyo.pos.y }, 100);
+    // kingyo のすぐそば（他のどの屋台より近い点）
+    const found = nearestStall({ x: kingyo.pos.x + 2, y: kingyo.pos.y }, 100);
     expect(found?.id).toBe(kingyo.id);
   });
 });

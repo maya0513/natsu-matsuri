@@ -10,12 +10,12 @@ test("起動して歩いて屋台を調べられる", async ({ page }) => {
   // three.js の canvas が出る（2 つ目はミニゲームオーバーレイなので先頭を見る）
   await expect(page.locator("#game canvas").first()).toBeVisible();
 
-  // 入口そばの焼きそば屋（-2.3, 15）へ歩く。開始位置は (0, 18)
+  // 入口そばの焼きそば屋（-4, 17）へ歩く。開始位置は (0, 20)
   await page.keyboard.down("w");
-  await page.waitForTimeout(900); // y: 18 → 約14.4
+  await page.waitForTimeout(800); // y: 20 → 約16.8
   await page.keyboard.up("w");
   await page.keyboard.down("a");
-  await page.waitForTimeout(700); // x: 0 → 約-2.8
+  await page.waitForTimeout(1000); // x: 0 → 約-4
   await page.keyboard.up("a");
 
   // 近接プロンプトが出て、E でダイアログが開く

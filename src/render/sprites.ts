@@ -39,7 +39,11 @@ export const createPlayerSprite = (sheet: THREE.Texture): PlayerSprite => {
   return {
     mesh,
     sync: (player, time) => {
-      mesh.position.set(player.pos.x, groundHeightAt(player.pos.x) + h / 2, player.pos.y);
+      mesh.position.set(
+        player.pos.x,
+        groundHeightAt(player.pos.x, player.pos.y) + h / 2,
+        player.pos.y,
+      );
       const col = player.moving
         ? (WALK_CYCLE[Math.floor(time * WALK_FPS) % WALK_CYCLE.length] ?? 0)
         : 0;
@@ -81,7 +85,7 @@ export const createHeldItemSprite = (sheet: THREE.Texture): HeldItemSprite => {
       tex.offset.set(idx / HELD_SHEET.order.length, 0);
       // 歩行中はわずかに上下して躍動感を出す
       const bob = player.moving ? Math.sin(time * 8 * Math.PI) * 0.03 : 0;
-      const ground = groundHeightAt(player.pos.x);
+      const ground = groundHeightAt(player.pos.x, player.pos.y);
       mesh.position.set(
         player.pos.x + handX[player.facing],
         ground + h / 2 + 0.18 + bob,

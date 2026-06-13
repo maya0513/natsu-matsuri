@@ -59,7 +59,7 @@ export const createGameView = async (
       followPlayer(camera, state.player.pos);
       playerLight.position.set(
         state.player.pos.x,
-        groundHeightAt(state.player.pos.x) + 1.6,
+        groundHeightAt(state.player.pos.x, state.player.pos.y) + 1.6,
         state.player.pos.y,
       );
       fireworks.update(state.time);

@@ -5,7 +5,7 @@ import type { GameState } from "./types";
 export const initialGameState: GameState = {
   time: 0,
   player: {
-    pos: { x: 0, y: 18 }, // 参道の入り口（鳥居側）からスタート
+    pos: { x: 0, y: 20 }, // 参道の入り口（鳥居側）からスタート
     facing: "up",
     moving: false,
   },

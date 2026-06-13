@@ -1,5 +1,6 @@
 // 夜の神社周辺マップの構築。GameState に依存しない静的な配置のみ。
-// 会場は一段高い台地、左手は一段低い河川敷で、間を本物の石段（段差ジオメトリ）でつなぐ。
+// 会場は広い台地、左手は一段低い河川敷で、両者は一か所の長い石段（段差ジオメトリ）だけでつながる。
+// 石段以外の境界は擁壁。レイアウトの高さ定義は WORLD（game/constants）を契約として共有する。
 import * as THREE from "three";
 import {
   LANTERN_TEXTURE,
@@ -8,46 +9,43 @@ import {
   TORII_TEXTURE,
   YAGURA_TEXTURE,
 } from "../assets/meta";
-import { MAP_BOUNDS } from "../game/constants";
+import { MAP_BOUNDS, WORLD } from "../game/constants";
 import { STALLS } from "../game/stalls";
 import { createBillboard, spriteMaterial, toUnits } from "./sprites";
-import { BANK_Y, STAIR_BOT_X, STAIR_STEPS, STAIR_TOP_X, groundHeightAt } from "./terrain";
+import { groundHeightAt } from "./terrain";
 import type { GameTextures } from "./textures";
 
 /** 参道の幅（unit） */
 const PATH_WIDTH = 3.5;
-/** 鳥居（入口）・神社の位置 */
-const TORII_Y = 18;
-const SHRINE_Y = -17;
-/** やぐらの位置（右手の広場） */
-const YAGURA_POS = { x: 8, y: 8 } as const;
+/** 鳥居（入口）・神社・やぐらの位置 */
+const TORII_Y = 20;
+const SHRINE_Y = -19;
+const YAGURA_POS = { x: 19, y: 9 } as const;
 /** 川（水面）の中心 x */
-const RIVER_X = -13;
+const RIVER_X = -19;
 
 /** マップ全体を覆う奥行き（z = game y 方向） */
 const DEPTH = MAP_BOUNDS.maxY - MAP_BOUNDS.minY + 20;
 
 /**
  * 蛇行する参道の折れ線。入口(手前 +y)→社(奥 -y)へ曲がりながら伸び、
- * 途中で西へ枝分かれして石段（河川敷）へ向かう。屋台はこの道沿いに散る。
+ * y≈4（石段の z 範囲内）で西へ枝分かれして河川敷の石段へ向かう。屋台はこの道の脇に散る。
  */
 const SEGMENTS: readonly (readonly [readonly [number, number], readonly [number, number]])[] = [
-  [[0, 19], [0, 12]],
-  [[0, 12], [5, 12]],
-  [[5, 12], [5, 3]],
-  [[5, 8], [YAGURA_POS.x, 8]], // やぐら広場へ
-  [[5, 3], [-2, 3]],
-  [[-2, 3], [STAIR_TOP_X, 3]], // 河川敷（石段）へ
-  [[-2, 3], [-2, -8]],
-  [[-2, -8], [3, -8]],
-  [[3, -8], [3, -15]],
-  [[3, -15], [0, -15]],
+  [[0, 20], [0, 13]],
+  [[0, 13], [7, 13]],
+  [[7, 13], [7, 4]],
+  [[7, 9], [16, 9]], // やぐら広場へ
+  [[7, 4], [WORLD.plateauX, 4]], // 河川敷（石段）へ
+  [[7, 4], [7, -8]],
+  [[7, -8], [0, -8]],
+  [[0, -8], [0, SHRINE_Y + 1]],
 ];
 
-/** 台地・河川敷の地面と、両者をつなぐ石段 */
+/** 台地・河川敷の地面、両者をつなぐ一か所の石段、それ以外を塞ぐ擁壁 */
 const addGround = (scene: THREE.Scene, tex: GameTextures): void => {
-  // 台地（祭り会場）: 石段の右端から右いっぱい
-  const platX0 = STAIR_TOP_X;
+  // 台地（祭り会場）
+  const platX0 = WORLD.plateauX;
   const platX1 = MAP_BOUNDS.maxX + 10;
   const platW = platX1 - platX0;
   const ground = tex.tileGround.clone();
@@ -62,44 +60,62 @@ const addGround = (scene: THREE.Scene, tex: GameTextures): void => {
   plateau.position.set((platX0 + platX1) / 2, 0, 0);
   scene.add(plateau);
 
-  // 河川敷（草地）: 石段の左端から左いっぱい、一段低い
+  // 河川敷（草地・一段低い）
   const bankX0 = MAP_BOUNDS.minX - 6;
-  const bankX1 = STAIR_BOT_X;
+  const bankX1 = WORLD.bankX;
   const bank = new THREE.Mesh(
     new THREE.PlaneGeometry(bankX1 - bankX0, DEPTH),
     new THREE.MeshLambertMaterial({ color: "#2c4a32" }),
   );
   bank.rotation.x = -Math.PI / 2;
-  bank.position.set((bankX0 + bankX1) / 2, BANK_Y, 0);
+  bank.position.set((bankX0 + bankX1) / 2, WORLD.bankY, 0);
   scene.add(bank);
 
-  // 本物の石段（段差ジオメトリ）: 台地から河川敷へ段々に下りる
-  const stepW = (STAIR_TOP_X - STAIR_BOT_X) / STAIR_STEPS;
   const stone = new THREE.MeshLambertMaterial({ color: "#5c606b" });
-  const base = BANK_Y - 0.4; // 各段の底（河川敷の少し下まで沈める）
-  for (let k = 1; k <= STAIR_STEPS; k++) {
-    const treadH = (BANK_Y * k) / STAIR_STEPS;
-    const xRight = STAIR_TOP_X - (k - 1) * stepW;
+  const wallMat = new THREE.MeshLambertMaterial({ color: "#3c4048" });
+  const bandW = WORLD.plateauX - WORLD.bankX;
+  const bandCx = (WORLD.plateauX + WORLD.bankX) / 2;
+  const base = WORLD.bankY - 0.6; // 段・壁の底（河川敷の少し下まで沈める）
+
+  // 一か所の長い石段（段差ジオメトリ）: z∈[stairZ0,stairZ1] にだけ置く
+  const stepW = bandW / WORLD.stairSteps;
+  const stairLen = WORLD.stairZ1 - WORLD.stairZ0;
+  const stairCz = (WORLD.stairZ0 + WORLD.stairZ1) / 2;
+  for (let k = 1; k <= WORLD.stairSteps; k++) {
+    const treadH = (WORLD.bankY * k) / WORLD.stairSteps;
+    const xRight = WORLD.plateauX - (k - 1) * stepW;
     const height = treadH - base;
-    const step = new THREE.Mesh(new THREE.BoxGeometry(stepW, height, DEPTH), stone);
-    step.position.set(xRight - stepW / 2, (treadH + base) / 2, 0);
+    const step = new THREE.Mesh(new THREE.BoxGeometry(stepW, height, stairLen), stone);
+    step.position.set(xRight - stepW / 2, (treadH + base) / 2, stairCz);
     scene.add(step);
+  }
+
+  // 擁壁: 石段の z 範囲を除いた境界帯を塞ぐ（台地縁の石垣）
+  const wallSegs: readonly (readonly [number, number])[] = [
+    [MAP_BOUNDS.minY - 10, WORLD.stairZ0],
+    [WORLD.stairZ1, MAP_BOUNDS.maxY + 10],
+  ];
+  for (const [z0, z1] of wallSegs) {
+    const len = z1 - z0;
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(bandW, -base, len), wallMat);
+    wall.position.set(bandCx, base / 2, (z0 + z1) / 2);
+    scene.add(wall);
   }
 };
 
 /** 川（夜の水面）。河川敷の高さに合わせて低く置く */
 const addRiver = (scene: THREE.Scene): void => {
   const water = new THREE.Mesh(
-    new THREE.PlaneGeometry(6, DEPTH),
+    new THREE.PlaneGeometry(8, DEPTH),
     new THREE.MeshLambertMaterial({ color: "#16314a", emissive: "#0c2236" }),
   );
   water.rotation.x = -Math.PI / 2;
-  water.position.set(RIVER_X, BANK_Y - 0.05, 0);
+  water.position.set(RIVER_X, WORLD.bankY - 0.05, 0);
   scene.add(water);
   // 水面のきらめき（淡い反射光）を数カ所
-  for (const z of [10, -6]) {
-    const shimmer = new THREE.PointLight("#6aa6d6", 4, 16, 1.5);
-    shimmer.position.set(RIVER_X + 1.5, BANK_Y + 1.2, z);
+  for (const z of [12, -2, -16]) {
+    const shimmer = new THREE.PointLight("#6aa6d6", 4, 18, 1.5);
+    shimmer.position.set(RIVER_X + 2, WORLD.bankY + 1.2, z);
     scene.add(shimmer);
   }
 };
@@ -117,12 +133,14 @@ const addPaths = (scene: THREE.Scene, tex: GameTextures): void => {
     path.wrapS = THREE.RepeatWrapping;
     path.wrapT = THREE.RepeatWrapping;
     path.repeat.set(w, d);
+    const cx = (x0 + x1) / 2;
+    const cz = (z0 + z1) / 2;
     const mesh = new THREE.Mesh(
       new THREE.PlaneGeometry(w, d),
       new THREE.MeshLambertMaterial({ map: path }),
     );
     mesh.rotation.x = -Math.PI / 2;
-    mesh.position.set((x0 + x1) / 2, groundHeightAt((x0 + x1) / 2) + 0.011, (z0 + z1) / 2);
+    mesh.position.set(cx, groundHeightAt(cx, cz) + 0.011, cz);
     scene.add(mesh);
   }
 };
@@ -137,7 +155,7 @@ const addStalls = (scene: THREE.Scene, tex: GameTextures): void => {
     t.repeat.set(1 / cols, 1);
     t.offset.set(idx / cols, 0);
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), spriteMaterial(t));
-    mesh.position.set(stall.pos.x, groundHeightAt(stall.pos.x) + h / 2, stall.pos.y);
+    mesh.position.set(stall.pos.x, groundHeightAt(stall.pos.x, stall.pos.y) + h / 2, stall.pos.y);
     scene.add(mesh);
   }
 };
@@ -155,18 +173,18 @@ const addLanterns = (scene: THREE.Scene, tex: GameTextures): void => {
     const uz = (bz - az) / len;
     const px = -uz; // 進行方向に垂直
     const pz = ux;
-    for (let dpos = 2; dpos < len; dpos += 4) {
+    for (let dpos = 2; dpos < len; dpos += 4.5) {
       const cx = ax + ux * dpos;
       const cz = az + uz * dpos;
       for (const s of [-1, 1] as const) {
         const lx = cx + px * off * s;
         const lz = cz + pz * off * s;
         const lantern = createBillboard(tex.lantern, LANTERN_TEXTURE.w, LANTERN_TEXTURE.h, lx, lz);
-        lantern.position.y = groundHeightAt(lx) + HANG_HEIGHT + h / 2;
+        lantern.position.y = groundHeightAt(lx, lz) + HANG_HEIGHT + h / 2;
         scene.add(lantern);
         if (i % 5 === 0) {
           const light = new THREE.PointLight("#ff9d3c", 6, 9, 1.8);
-          light.position.set(lx, groundHeightAt(lx) + HANG_HEIGHT, lz);
+          light.position.set(lx, groundHeightAt(lx, lz) + HANG_HEIGHT, lz);
           scene.add(light);
         }
         i++;
@@ -185,14 +203,14 @@ const addStanding = (
   y: number,
 ): void => {
   const mesh = createBillboard(map, w, h, x, y);
-  mesh.position.y += groundHeightAt(x);
+  mesh.position.y += groundHeightAt(x, y);
   scene.add(mesh);
 };
 
 export const createScene = (tex: GameTextures): THREE.Scene => {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color("#05030f");
-  scene.fog = new THREE.Fog("#05030f", 30, 80);
+  scene.fog = new THREE.Fog("#05030f", 34, 90);
 
   // 月明かり程度の環境光（Lambert の地面にだけ効く）
   scene.add(new THREE.AmbientLight("#5a5288", 0.7));
