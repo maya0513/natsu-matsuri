@@ -75,7 +75,7 @@ export const createFireworksRenderer = (
     geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
     const material = new THREE.PointsMaterial({
       color,
-      size: 0.3,
+      size: 0.45,
       transparent: true,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
@@ -94,9 +94,9 @@ export const createFireworksRenderer = (
   return {
     spawn: (seed, now) => {
       const rng = seededRng(seed + 0.123);
-      const x = -14 + rng() * 28;
-      const z = -28 - rng() * 8; // 神社の奥の空
-      const peak = 13 + rng() * 5;
+      const x = -12 + rng() * 24;
+      const z = -22 - rng() * 6; // 神社の奥の空（やや手前で見やすく）
+      const peak = 10 + rng() * 4;
       const mesh = new THREE.Mesh(
         new THREE.SphereGeometry(0.12, 4, 4),
         new THREE.MeshBasicMaterial({ color: "#ffd27a" }),
