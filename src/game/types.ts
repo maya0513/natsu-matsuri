@@ -9,11 +9,37 @@ export type Vec2 = {
 
 export type Direction = "up" | "down" | "left" | "right";
 
-/** 屋台の識別子（売買2種 + ミニゲーム4種） */
-export type StallId = "takoyaki" | "ringoame" | "kingyo" | "shateki" | "yoyo" | "kuji";
+/** 屋台の識別子（食べ物屋台 + ミニゲーム屋台） */
+export type StallId =
+  | "takoyaki"
+  | "ringoame"
+  | "yakisoba"
+  | "potato"
+  | "frank"
+  | "taiyaki"
+  | "chocobanana"
+  | "crepe"
+  | "kakigori"
+  | "juice"
+  | "kingyo"
+  | "shateki"
+  | "yoyo"
+  | "kuji";
 
 /** 屋台で食べられる品物 */
-export type ItemId = "takoyaki" | "ramune" | "ringoame" | "wataame";
+export type ItemId =
+  | "takoyaki"
+  | "ramune"
+  | "ringoame"
+  | "wataame"
+  | "yakisoba"
+  | "potato"
+  | "frank"
+  | "taiyaki"
+  | "chocobanana"
+  | "crepe"
+  | "kakigori"
+  | "juice";
 
 /** ミニゲームで勝ち取って持ち帰る景品 */
 export type PrizeId = "goldfish" | "yoyo-balloon" | "shateki-prize" | "omamori";

@@ -12,10 +12,20 @@ export type Stall = {
   readonly side: -1 | 1;
 };
 
-/** 参道: y=18(鳥居側入口) → y=-14(神社)。屋台は x=±5 に並ぶ */
+/** 参道: y=18(鳥居側入口) → y=-17(神社)。屋台は両脇 x=±5 に並ぶ */
 export const STALLS: readonly Stall[] = [
+  // 食べ物屋台
+  { id: "yakisoba", name: "焼きそば", kind: "shop", pos: { x: -5, y: 12 }, side: -1 },
+  { id: "potato", name: "ポテト", kind: "shop", pos: { x: 5, y: 12 }, side: 1 },
   { id: "takoyaki", name: "たこ焼き", kind: "shop", pos: { x: -5, y: 6 }, side: -1 },
   { id: "ringoame", name: "りんご飴", kind: "shop", pos: { x: 5, y: 6 }, side: 1 },
+  { id: "crepe", name: "クレープ", kind: "shop", pos: { x: -5, y: 3 }, side: -1 },
+  { id: "kakigori", name: "かき氷", kind: "shop", pos: { x: 5, y: 3 }, side: 1 },
+  { id: "juice", name: "ジュース", kind: "shop", pos: { x: -5, y: -3 }, side: -1 },
+  { id: "frank", name: "フランクフルト", kind: "shop", pos: { x: 5, y: -3 }, side: 1 },
+  { id: "taiyaki", name: "たい焼き", kind: "shop", pos: { x: -5, y: -11 }, side: -1 },
+  { id: "chocobanana", name: "チョコバナナ", kind: "shop", pos: { x: 5, y: -11 }, side: 1 },
+  // ミニゲーム屋台
   { id: "kingyo", name: "金魚すくい", kind: "minigame", pos: { x: -5, y: 0 }, side: -1 },
   { id: "yoyo", name: "ヨーヨー釣り", kind: "minigame", pos: { x: 5, y: 0 }, side: 1 },
   { id: "shateki", name: "射的", kind: "minigame", pos: { x: -5, y: -6 }, side: -1 },

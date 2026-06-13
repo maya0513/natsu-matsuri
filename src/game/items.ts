@@ -13,12 +13,28 @@ export const ITEM_INFO: Record<ItemId, ItemInfo> = {
   ramune: { name: "ラムネ", emoji: "🥤" },
   ringoame: { name: "りんご飴", emoji: "🍎" },
   wataame: { name: "わたあめ", emoji: "🍬" },
+  yakisoba: { name: "焼きそば", emoji: "🍜" },
+  potato: { name: "ポテト", emoji: "🍟" },
+  frank: { name: "フランクフルト", emoji: "🌭" },
+  taiyaki: { name: "たい焼き", emoji: "🐟" },
+  chocobanana: { name: "チョコバナナ", emoji: "🍌" },
+  crepe: { name: "クレープ", emoji: "🥞" },
+  kakigori: { name: "かき氷", emoji: "🍧" },
+  juice: { name: "ジュース", emoji: "🧃" },
 };
 
 /** 売買屋台の品揃え。ミニゲーム屋台はここに載らない */
 export const SHOP_MENU: Partial<Record<StallId, readonly ItemId[]>> = {
   takoyaki: ["takoyaki", "ramune"],
   ringoame: ["ringoame", "wataame"],
+  yakisoba: ["yakisoba"],
+  potato: ["potato"],
+  frank: ["frank"],
+  taiyaki: ["taiyaki"],
+  chocobanana: ["chocobanana"],
+  crepe: ["crepe"],
+  kakigori: ["kakigori"],
+  juice: ["juice"],
 };
 
 /** 指定屋台にその品物があるか */

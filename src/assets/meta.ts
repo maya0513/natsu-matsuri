@@ -20,7 +20,22 @@ export const STALL_SHEET = {
   url: "/assets/stalls.png",
   frameW: 96,
   frameH: 80,
-  order: ["takoyaki", "ringoame", "kingyo", "shateki", "yoyo", "kuji"],
+  order: [
+    "takoyaki",
+    "ringoame",
+    "kingyo",
+    "shateki",
+    "yoyo",
+    "kuji",
+    "yakisoba",
+    "potato",
+    "frank",
+    "taiyaki",
+    "chocobanana",
+    "crepe",
+    "kakigori",
+    "juice",
+  ],
 } as const;
 
 /** 手持ち品シート（食べ物＋景品）。order は CarriedId と一致 */
@@ -37,6 +52,14 @@ export const HELD_SHEET = {
     "yoyo-balloon",
     "shateki-prize",
     "omamori",
+    "yakisoba",
+    "potato",
+    "frank",
+    "taiyaki",
+    "chocobanana",
+    "crepe",
+    "kakigori",
+    "juice",
   ],
 } as const;
 

@@ -10,8 +10,15 @@ describe("drawStallSheet", () => {
     expect(sheet.height).toBe(STALL_FRAME_H);
   });
 
-  it("屋台の並びは StallId 6 種", () => {
-    expect(STALL_ORDER).toEqual(["takoyaki", "ringoame", "kingyo", "shateki", "yoyo", "kuji"]);
+  it("既存のミニゲーム屋台の並びを先頭に保つ", () => {
+    expect(STALL_ORDER.slice(0, 6)).toEqual([
+      "takoyaki",
+      "ringoame",
+      "kingyo",
+      "shateki",
+      "yoyo",
+      "kuji",
+    ]);
   });
 
   it("各屋台のセルは互いに異なる絵（看板アイコンで区別）", () => {

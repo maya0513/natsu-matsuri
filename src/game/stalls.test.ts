@@ -3,8 +3,8 @@ import { MAP_BOUNDS } from "./constants";
 import { STALLS, nearestStall } from "./stalls";
 
 describe("STALLS 配置", () => {
-  it("6 屋台すべてが一意の id を持つ", () => {
-    expect(new Set(STALLS.map((s) => s.id)).size).toBe(6);
+  it("全屋台が一意の id を持つ", () => {
+    expect(new Set(STALLS.map((s) => s.id)).size).toBe(STALLS.length);
   });
 
   it("全屋台がマップ境界内にある", () => {

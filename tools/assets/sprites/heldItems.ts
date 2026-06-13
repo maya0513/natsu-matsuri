@@ -6,7 +6,7 @@ import { type PixelCanvas, blit, createCanvas, fillRect, setPixel } from "../pix
 export const HELD_FRAME_W = 10;
 export const HELD_FRAME_H = 10;
 
-/** CarriedId（食べ物4＋景品4）と同じ並び */
+/** CarriedId（食べ物＋景品）と同じ並び */
 export const HELD_ORDER = [
   "takoyaki",
   "ramune",
@@ -16,6 +16,14 @@ export const HELD_ORDER = [
   "yoyo-balloon",
   "shateki-prize",
   "omamori",
+  "yakisoba",
+  "potato",
+  "frank",
+  "taiyaki",
+  "chocobanana",
+  "crepe",
+  "kakigori",
+  "juice",
 ] as const;
 
 type Held = (typeof HELD_ORDER)[number];
@@ -151,6 +159,78 @@ const drawHeld = (held: Held): PixelCanvas => {
         [3, 8],
         [6, 8],
       ]);
+      break;
+    }
+    case "yakisoba": {
+      // 舟皿の焼きそば
+      fillRect(c, 0, 6, 10, 2, PAL.woodLight);
+      fillRect(c, 1, 3, 8, 3, PAL.takoyakiBall);
+      for (const dx of [2, 5, 7]) setPixel(c, dx, 3, PAL.lanternGlow);
+      setPixel(c, 3, 4, PAL.candyApple);
+      setPixel(c, 6, 4, PAL.aonori);
+      break;
+    }
+    case "potato": {
+      // カップのフライドポテト
+      fillRect(c, 2, 4, 6, 5, PAL.candyApple);
+      for (const dx of [2, 4, 6]) fillRect(c, dx, 1, 1, 4, PAL.balloonYellow);
+      setPixel(c, 3, 2, PAL.lanternGlow);
+      break;
+    }
+    case "frank": {
+      // 串のフランクフルト
+      fillRect(c, 4, 5, 1, 5, PAL.woodLight); // 串
+      fillRect(c, 3, 1, 3, 5, PAL.takoyakiBall);
+      fillRect(c, 4, 2, 1, 3, PAL.balloonYellow); // マスタード
+      round(c, [
+        [3, 1],
+        [5, 1],
+      ]);
+      break;
+    }
+    case "taiyaki": {
+      // たい焼き
+      fillRect(c, 1, 3, 6, 4, PAL.woodLight);
+      fillRect(c, 7, 2, 2, 6, PAL.woodLight); // 尾
+      setPixel(c, 2, 4, PAL.eye); // 目
+      setPixel(c, 4, 5, PAL.takoyakiBall);
+      round(c, [
+        [1, 3],
+        [6, 3],
+      ]);
+      break;
+    }
+    case "chocobanana": {
+      // チョコバナナ
+      fillRect(c, 4, 6, 1, 4, PAL.woodLight); // 串
+      fillRect(c, 3, 1, 3, 6, PAL.balloonYellow);
+      fillRect(c, 3, 1, 3, 2, PAL.woodDark); // チョコ
+      setPixel(c, 4, 2, PAL.collar);
+      setPixel(c, 5, 4, PAL.wataameLight);
+      break;
+    }
+    case "crepe": {
+      // クレープ（コーン）
+      for (let y = 0; y < 8; y++) {
+        const w = Math.max(1, 6 - Math.floor(y * 0.8));
+        fillRect(c, 2, 1 + y, w, 1, PAL.wataameLight);
+      }
+      setPixel(c, 3, 1, PAL.candyApple);
+      setPixel(c, 4, 2, PAL.candyApple);
+      break;
+    }
+    case "kakigori": {
+      // かき氷
+      fillRect(c, 2, 5, 6, 4, PAL.ramuneGlass); // カップ
+      for (let y = 0; y < 4; y++) fillRect(c, 4 - y, 1 + y, 2 + y * 2, 1, PAL.awningWhite);
+      fillRect(c, 3, 3, 4, 2, PAL.water); // シロップ
+      break;
+    }
+    case "juice": {
+      // カップジュース
+      fillRect(c, 2, 3, 5, 6, PAL.ramuneGlass);
+      fillRect(c, 3, 4, 3, 4, PAL.candyApple);
+      fillRect(c, 6, 0, 1, 5, PAL.collar); // ストロー
       break;
     }
   }
