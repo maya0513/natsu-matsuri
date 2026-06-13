@@ -64,61 +64,14 @@ describe("update（固定タイムステップ統合）", () => {
     expect(state.mode).toEqual({ kind: "walk" });
   });
 
-  it("複数品の食べ物屋台のダイアログでは interact で遷移しない（選択は数字キー）", () => {
-    // たこ焼き屋は たこ焼き＋ラムネ の 2 品
-    const inDialog: GameState = {
-      ...initialGameState,
-      mode: { kind: "dialog", stallId: "takoyaki" },
-    };
-    const { state } = run(inDialog, { move: { x: 0, y: 0 }, interact: true }, 1 / 60);
-    expect(state.mode).toEqual({ kind: "dialog", stallId: "takoyaki" });
-  });
-
-  it("単品の食べ物屋台のダイアログでは interact でその品を買う", () => {
-    // 焼きそば屋は 1 品なので E で買える
-    const inDialog: GameState = {
-      ...initialGameState,
-      mode: { kind: "dialog", stallId: "yakisoba" },
-    };
-    const { state, events } = run(inDialog, { move: { x: 0, y: 0 }, interact: true }, 1 / 60);
-    expect(state.mode).toEqual({ kind: "walk" });
-    expect(state.heldItem).toBe("yakisoba");
-    expect(events).toEqual([{ kind: "item-eaten" }]);
-  });
-
-  it("ミニゲーム屋台のダイアログでは interact でゲームが始まる", () => {
-    const inDialog: GameState = {
-      ...initialGameState,
-      mode: { kind: "dialog", stallId: "kingyo" },
-    };
-    const { state } = run(inDialog, { move: { x: 0, y: 0 }, interact: true }, 1 / 60);
-    expect(state.mode.kind).toBe("minigame");
-    if (state.mode.kind === "minigame") expect(state.mode.game.id).toBe("kingyo");
-  });
-
-  it("ミニゲーム終了後の interact で再挑戦になる（ポイ復活）", () => {
-    const done: GameState = {
-      ...initialGameState,
-      mode: { kind: "minigame", game: { id: "kingyo", fishX: 0.5, dir: 1, poiLeft: 0, caught: 2 } },
-    };
-    const { state } = run(done, { move: { x: 0, y: 0 }, interact: true }, 1 / 60);
-    if (state.mode.kind === "minigame" && state.mode.game.id === "kingyo") {
-      expect(state.mode.game.poiLeft).toBeGreaterThan(0);
-      expect(state.mode.game.caught).toBe(0);
-    }
-  });
-
-  it("ビンゴは interact で玉を引く", () => {
-    const s: GameState = {
-      ...initialGameState,
-      mode: {
-        kind: "minigame",
-        game: { id: "bingo", card: [1, 2, 3, 4, 5, 6, 7, 8, 9], marked: Array(9).fill(false), drawn: [], bingo: false },
-      },
-    };
-    const { state } = run(s, { move: { x: 0, y: 0 }, interact: true }, 1 / 60);
-    if (state.mode.kind === "minigame" && state.mode.game.id === "bingo") {
-      expect(state.mode.game.drawn.length).toBe(1);
+  it("ダイアログ中の interact では遷移しない（操作は UI 層が処理）", () => {
+    for (const stallId of ["takoyaki", "yakisoba", "kingyo"] as const) {
+      const inDialog: GameState = {
+        ...initialGameState,
+        mode: { kind: "dialog", stallId },
+      };
+      const { state } = run(inDialog, { move: { x: 0, y: 0 }, interact: true }, 1 / 60);
+      expect(state.mode).toEqual({ kind: "dialog", stallId });
     }
   });
 
@@ -134,15 +87,15 @@ describe("update（固定タイムステップ統合）", () => {
     }
   });
 
-  it("minigame モードで interact すると press 扱いになり hit イベントが出る", () => {
+  it("minigame モード中の interact ではコアは押さない（UI が処理）", () => {
     const s: GameState = {
       ...initialGameState,
       mode: { kind: "minigame", game: { id: "kingyo", fishX: 0.5, dir: 1, poiLeft: 3, caught: 0 } },
     };
     const { state, events } = run(s, { move: { x: 0, y: 0 }, interact: true }, 1 / 60);
-    expect(events).toEqual([{ kind: "minigame-hit" }]);
+    expect(events).toEqual([]);
     if (state.mode.kind === "minigame" && state.mode.game.id === "kingyo") {
-      expect(state.mode.game.caught).toBe(1);
+      expect(state.mode.game.caught).toBe(0);
     }
   });
 

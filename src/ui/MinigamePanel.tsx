@@ -54,18 +54,22 @@ export const MinigamePanel = ({ view, dispatch }: Props) => {
   const picking = (view.id === "kuji" || view.id === "senbiki") && !view.finished;
   const isBingo = view.id === "bingo";
 
+  const roseClass =
+    "rounded bg-rose-500 px-4 py-1.5 font-bold text-slate-950 hover:bg-rose-400 focus:outline-none focus:ring-2 focus:ring-white/90";
+  const cancelClass =
+    "rounded px-3 py-1.5 text-sm text-slate-400 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-white/70";
+
   const exitButton = (
-    <button
-      type="button"
-      class="rounded px-3 py-1.5 text-sm text-slate-400 hover:bg-slate-800"
-      onClick={() => dispatch({ kind: "exit-minigame" })}
-    >
-      やめる (Esc)
+    <button type="button" class={cancelClass} onClick={() => dispatch({ kind: "exit-minigame" })}>
+      やめる
     </button>
   );
 
   return (
-    <div class="absolute inset-x-0 bottom-6 mx-auto w-[min(26rem,90vw)] rounded-lg border-2 border-rose-400/60 bg-slate-950/90 p-4 text-center text-slate-100">
+    <div
+      data-modal
+      class="absolute inset-x-0 bottom-6 mx-auto w-[min(26rem,90vw)] rounded-lg border-2 border-rose-400/60 bg-slate-950/90 p-4 text-center text-slate-100"
+    >
       <div class="mb-1 flex items-center justify-between">
         <h2 class="text-lg font-bold text-rose-300">{stall?.name}</h2>
         {status && <span class="text-sm text-slate-300">{status}</span>}
@@ -79,14 +83,14 @@ export const MinigamePanel = ({ view, dispatch }: Props) => {
       {picking ? (
         <div class="space-y-2">
           <p class="text-sm text-slate-300">
-            {view.id === "kuji" ? "箱から 1 枚引く" : "好きな紐を 1 本引く"}（数字キー）
+            {view.id === "kuji" ? "箱から 1 枚引く" : "好きな紐を 1 本引く"}
           </p>
           <div class="flex flex-wrap justify-center gap-2">
             {Array.from({ length: view.count ?? 0 }, (_, i) => (
               <button
                 key={i}
                 type="button"
-                class="h-10 w-8 rounded bg-amber-500/80 font-bold text-slate-950 hover:bg-amber-400"
+                class="h-10 w-8 rounded bg-amber-500/80 font-bold text-slate-950 hover:bg-amber-400 focus:outline-none focus:ring-2 focus:ring-white/90"
                 onClick={() =>
                   dispatch(
                     view.id === "kuji"
@@ -122,20 +126,16 @@ export const MinigamePanel = ({ view, dispatch }: Props) => {
           )}
           <div class="flex items-center justify-center gap-3">
             {view.finished ? (
-              <button
-                type="button"
-                class="rounded bg-rose-500 px-4 py-1.5 font-bold text-slate-950 hover:bg-rose-400"
-                onClick={() => dispatch({ kind: "retry-minigame" })}
-              >
-                もう一回（E）
+              <button type="button" class={roseClass} onClick={() => dispatch({ kind: "retry-minigame" })}>
+                もう一回
               </button>
             ) : (
               <button
                 type="button"
-                class="rounded bg-rose-500 px-4 py-1.5 font-bold text-slate-950 hover:bg-rose-400"
+                class={roseClass}
                 onClick={() => dispatch({ kind: "draw-ball", rng: Math.random })}
               >
-                玉を引く（E）
+                玉を引く
               </button>
             )}
             {exitButton}
@@ -144,25 +144,19 @@ export const MinigamePanel = ({ view, dispatch }: Props) => {
       ) : (
         <div class="flex items-center justify-center gap-3">
           {view.finished ? (
-            <button
-              type="button"
-              class="rounded bg-rose-500 px-4 py-1.5 font-bold text-slate-950 hover:bg-rose-400"
-              onClick={() => dispatch({ kind: "retry-minigame" })}
-            >
+            <button type="button" class={roseClass} onClick={() => dispatch({ kind: "retry-minigame" })}>
               もう一回
             </button>
           ) : (
-            <button
-              type="button"
-              class="rounded bg-rose-500 px-4 py-1.5 font-bold text-slate-950 hover:bg-rose-400"
-              onClick={() => dispatch({ kind: "minigame-press" })}
-            >
-              {PRESS_LABEL[view.id]}（E でも可）
+            <button type="button" class={roseClass} onClick={() => dispatch({ kind: "minigame-press" })}>
+              {PRESS_LABEL[view.id]}
             </button>
           )}
           {exitButton}
         </div>
       )}
+
+      <p class="mt-3 text-xs text-slate-500">← → で選んで Enter で決定 ／ Esc でやめる</p>
     </div>
   );
 };

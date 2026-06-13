@@ -74,6 +74,12 @@ const loop = (now: number): void => {
   accumulator += Math.min((now - last) / 1000, MAX_FRAME_TIME);
   last = now;
 
+  // モーダル（ダイアログ/ミニゲーム）中は決定キーを UI（上下左右で選択→Enter）が処理するため、
+  // コアへは interact を渡さない。interact は 1 フレームに 1 回だけ効かせる（多重発火防止）。
+  // 判定はフレーム先頭の mode で行う。pendingActions（UI の決定＝eat 等）でこのフレーム中に
+  // walk へ戻っても、その決定と同時に押された Enter が屋台を再オープンしないようにするため。
+  const modalOpen = state.mode.kind !== "walk";
+
   for (const action of pendingActions.splice(0)) {
     const result = applyAction(state, action);
     state = result.state;
@@ -81,10 +87,12 @@ const loop = (now: number): void => {
   }
 
   const intent = input.poll();
-  // interact（決定）は 1 フレームに 1 回だけ効かせる（ラグで複数サブステップ走っても多重発火しない）
   let firstStep = true;
   while (accumulator >= FIXED_DT) {
-    const stepIntent = firstStep ? intent : { ...intent, interact: false };
+    const stepIntent = {
+      move: intent.move,
+      interact: firstStep && !modalOpen ? intent.interact : false,
+    };
     const result = update(state, stepIntent, FIXED_DT, Math.random);
     state = result.state;
     handleEvents(result.events);

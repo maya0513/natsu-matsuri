@@ -1,8 +1,6 @@
-import { applyAction, applyPress } from "./actions";
 import { INTERACT_RADIUS } from "./constants";
 import { stepFireworks } from "./fireworks";
-import { SHOP_MENU } from "./items";
-import { isFinished, stepMinigame } from "./minigames";
+import { stepMinigame } from "./minigames";
 import { movePlayer } from "./movement";
 import { nearestStall } from "./stalls";
 import type { GameEvent, GameState, Intent, Rng, UpdateResult } from "./types";
@@ -21,42 +19,19 @@ export const update = (state: GameState, intent: Intent, dt: number, rng: Rng): 
   let working: GameState = { ...state, time, player };
   const events: GameEvent[] = [];
 
-  // キーボードだけで完結できるよう、各モードの「決定」を interact に集約する
-  // （品物・くじ札の選択だけは数字キーで UI から dispatch される）
+  // walk 中の interact で最寄りの屋台を調べる。ダイアログ/ミニゲーム中の操作は UI 層が担う
+  // （上下左右で選択 → Enter で決定。屋台の品選びやくじ引き等もすべて UI）
   if (working.mode.kind === "walk") {
-    // walk 中に interact したら最寄りの屋台を調べる
     if (intent.interact) {
       const stall = nearestStall(player.pos, INTERACT_RADIUS);
       if (stall) working = { ...working, mode: { kind: "dialog", stallId: stall.id } };
     }
-  } else if (working.mode.kind === "dialog") {
-    // 受付ダイアログ: interact でミニゲーム屋台なら開始。食べ物屋台は品が1つなら買う
-    // （複数品の屋台は数字キーで選ぶ）
-    if (intent.interact) {
-      const menu = SHOP_MENU[working.mode.stallId];
-      const only = menu?.length === 1 ? menu[0] : undefined;
-      const r = only
-        ? applyAction(working, { kind: "eat", item: only })
-        : applyAction(working, { kind: "start-minigame" });
-      working = r.state;
-      events.push(...r.events);
-    }
   } else if (working.mode.kind === "minigame") {
-    // ミニゲーム: 時間経過でマーカーが動く。interact は状況により再挑戦/玉引き/押すになる
+    // ミニゲーム中は時間経過でマーカーだけが動く（押す等の操作は UI から dispatch）
     working = {
       ...working,
       mode: { kind: "minigame", game: stepMinigame(working.mode.game, dt) },
     };
-    if (intent.interact) {
-      const game = working.mode.game;
-      const r = isFinished(game)
-        ? applyAction(working, { kind: "retry-minigame" })
-        : game.id === "bingo"
-          ? applyAction(working, { kind: "draw-ball", rng })
-          : applyPress(working); // press 系。くじ/千本引きは no-op（選択は数字キー）
-      working = r.state;
-      events.push(...r.events);
-    }
   }
 
   // 花火はモードに関わらず周期で上がり続ける

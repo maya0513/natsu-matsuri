@@ -13,6 +13,12 @@ type Props = {
   readonly toggleSound: () => boolean;
 };
 
+/** 開いているモーダル内のボタン一覧（選択肢） */
+const modalButtons = (): HTMLButtonElement[] => {
+  const panel = document.querySelector("[data-modal]");
+  return panel ? Array.from(panel.querySelectorAll("button")) : [];
+};
+
 export const App = ({ dispatch, toggleSound }: Props) => {
   const soundOn = useSignal(false); // 音は既定で無効
   const dialogStall = dialogStallSig.value;
@@ -30,7 +36,39 @@ export const App = ({ dispatch, toggleSound }: Props) => {
     return () => window.removeEventListener("keydown", onKey);
   }, [dispatch]);
 
-  // 数字キーで品物・くじ札を選ぶ（キーボードだけで全操作できるように）
+  // 上下左右キーでモーダル内の選択肢（ボタン）を移動し、Enter/Space で決定する
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const btns = modalButtons();
+      if (btns.length === 0) return;
+
+      // 決定: フォーカス中のボタンを明示的に押す（ネイティブ既定動作の二重発火は preventDefault で防ぐ）
+      if (e.key === "Enter" || e.key === " " || e.code === "Space") {
+        const el = document.activeElement;
+        if (el instanceof HTMLButtonElement && el.closest("[data-modal]")) {
+          e.preventDefault();
+          el.click();
+        }
+        return;
+      }
+
+      const dir =
+        e.key === "ArrowRight" || e.key === "ArrowDown"
+          ? 1
+          : e.key === "ArrowLeft" || e.key === "ArrowUp"
+            ? -1
+            : 0;
+      if (dir === 0) return;
+      e.preventDefault();
+      const cur = btns.indexOf(document.activeElement as HTMLButtonElement);
+      const next = cur < 0 ? (dir > 0 ? 0 : btns.length - 1) : (cur + dir + btns.length) % btns.length;
+      btns[next]?.focus();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  // 数字キーで品物・くじ札を直接選ぶ（ショートカット）
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.repeat) return;
@@ -55,6 +93,13 @@ export const App = ({ dispatch, toggleSound }: Props) => {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [dispatch]);
+
+  // モーダルが開いた / 選択肢の構成が変わったら先頭の選択肢に自動フォーカス
+  const focusKey = dialogStall ?? (minigame ? `${minigame.id}|${minigame.finished}` : "");
+  useEffect(() => {
+    if (!focusKey) return;
+    modalButtons()[0]?.focus();
+  }, [focusKey]);
 
   return (
     <div class="font-sans select-none">
