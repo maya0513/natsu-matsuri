@@ -39,6 +39,14 @@ gen-assets:
 e2e:
     pnpm exec playwright test
 
-# Cloudflare Pages へデプロイ（要: wrangler login か CLOUDFLARE_API_TOKEN）
+# Cloudflare へデプロイ（dist を Workers Static Assets として配信。要: wrangler login か CLOUDFLARE_API_TOKEN）
 deploy: build
-    pnpm dlx wrangler pages deploy dist --project-name fooweb
+    pnpm dlx wrangler deploy
+
+# デプロイ前の検証（実際にはアップロードしない）
+deploy-check: build
+    pnpm dlx wrangler deploy --dry-run
+
+# Cloudflare 環境のローカルエミュレータ（dist を配信）
+serve: build
+    pnpm dlx wrangler dev

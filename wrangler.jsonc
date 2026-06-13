@@ -1,0 +1,11 @@
+{
+  "name": "natsu-matsuri",
+  "compatibility_date": "2026-06-01",
+  // Worker スクリプトは持たず、ビルド済みの静的アセット(dist)を配信するだけの構成。
+  // これにより Cloudflare 側のフレームワーク自動判定(Hydrogen 誤検出)を通らずにデプロイできる。
+  "assets": {
+    "directory": "./dist",
+    // SPA: アセットに一致しないパスは index.html にフォールバック
+    "not_found_handling": "single-page-application"
+  }
+}
