@@ -6,18 +6,17 @@ import { signal } from "@preact/signals";
 import { INTERACT_RADIUS } from "../game/constants";
 import { isFinished } from "../game/minigames";
 import { type Stall, nearestStall } from "../game/stalls";
-import type { GameState, ItemId, MinigameId, StallId } from "../game/types";
+import type { GameState, MinigameId, StallId } from "../game/types";
 
-export const inventorySig = signal<readonly ItemId[]>([]);
 /** 開いている売買/受付ダイアログの屋台 */
 export const dialogStallSig = signal<StallId | undefined>(undefined);
-/** walk 中、話しかけられる距離にいる屋台（HUD のプロンプト表示用） */
+/** walk 中、調べられる距離にいる屋台（HUD のプロンプト表示用） */
 export const nearbyStallSig = signal<Stall | undefined>(undefined);
 
 /** ミニゲームの離散ビュー（毎フレーム変わる連続値は含めない） */
 export type MinigameView = {
   readonly id: MinigameId;
-  readonly last?: "hit" | "miss" | ItemId;
+  readonly last?: "hit" | "miss";
   readonly poiLeft?: number;
   readonly caught?: number;
   readonly shotsLeft?: number;
@@ -57,8 +56,6 @@ const sameView = (a: MinigameView | undefined, b: MinigameView | undefined): boo
   JSON.stringify(a) === JSON.stringify(b);
 
 export const publish = (state: GameState): void => {
-  if (inventorySig.peek() !== state.inventory) inventorySig.value = state.inventory;
-
   const dialog = state.mode.kind === "dialog" ? state.mode.stallId : undefined;
   if (dialogStallSig.peek() !== dialog) dialogStallSig.value = dialog;
 

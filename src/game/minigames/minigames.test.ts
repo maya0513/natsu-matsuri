@@ -1,22 +1,16 @@
 import { describe, expect, it } from "vitest";
-import type { KingyoState, Rng, ShatekiState, YoyoState } from "../types";
+import type { KingyoState, KujiState, ShatekiState, YoyoState } from "../types";
 import { HIT_WINDOW, initMinigame, isFinished, pressMinigame, stepMinigame } from "./index";
 
-const always =
-  (v: number): Rng =>
-  () =>
-    v;
-
 describe("くじ引き", () => {
-  it("引くと景品が出る（75% 小 / 25% 大）", () => {
-    const small = pressMinigame(initMinigame("kuji"), always(0.5));
-    expect(small.prizes).toEqual(["kuji-prize-small"]);
-    const big = pressMinigame(initMinigame("kuji"), always(0.9));
-    expect(big.prizes).toEqual(["kuji-prize-big"]);
+  it("引けば必ず当たる", () => {
+    const r = pressMinigame(initMinigame("kuji"));
+    expect(r.hit).toBe(true);
+    expect((r.state as KujiState).last).toBe("hit");
   });
 
   it("何回でも引ける（終了条件なし）", () => {
-    const s = pressMinigame(initMinigame("kuji"), always(0.5)).state;
+    const s = pressMinigame(initMinigame("kuji")).state;
     expect(isFinished(s)).toBe(false);
   });
 
@@ -36,23 +30,23 @@ describe("ヨーヨー釣り", () => {
     }
   });
 
-  it("中央付近で押すと成功してヨーヨーが貰える", () => {
+  it("中央付近で押すと当たり", () => {
     const center: YoyoState = { id: "yoyo", t: 0.5, dir: 1 };
-    const r = pressMinigame(center, always(0));
-    expect(r.prizes).toEqual(["yoyo-balloon"]);
+    const r = pressMinigame(center);
+    expect(r.hit).toBe(true);
     expect((r.state as YoyoState).last).toBe("hit");
   });
 
-  it("端で押すと失敗", () => {
+  it("端で押すと外れ", () => {
     const edge: YoyoState = { id: "yoyo", t: 0.95, dir: -1 };
-    const r = pressMinigame(edge, always(0));
-    expect(r.prizes).toEqual([]);
+    const r = pressMinigame(edge);
+    expect(r.hit).toBe(false);
     expect((r.state as YoyoState).last).toBe("miss");
   });
 
-  it("HIT_WINDOW の境界内なら成功", () => {
+  it("HIT_WINDOW の境界内なら当たり", () => {
     const s: YoyoState = { id: "yoyo", t: 0.5 + HIT_WINDOW.yoyo - 0.001, dir: 1 };
-    expect(pressMinigame(s, always(0)).prizes).toHaveLength(1);
+    expect(pressMinigame(s).hit).toBe(true);
   });
 });
 
@@ -64,26 +58,26 @@ describe("金魚すくい", () => {
 
   it("金魚が中央付近のとき押すと捕獲", () => {
     const s: KingyoState = { id: "kingyo", fishX: 0.5, dir: 1, poiLeft: 3, caught: 0 };
-    const r = pressMinigame(s, always(0));
+    const r = pressMinigame(s);
     const after = r.state as KingyoState;
-    expect(r.prizes).toEqual(["goldfish"]);
+    expect(r.hit).toBe(true);
     expect(after.caught).toBe(1);
     expect(after.poiLeft).toBe(2);
   });
 
   it("外すとポイだけ減る", () => {
     const s: KingyoState = { id: "kingyo", fishX: 0.05, dir: 1, poiLeft: 3, caught: 0 };
-    const r = pressMinigame(s, always(0));
-    expect(r.prizes).toEqual([]);
+    const r = pressMinigame(s);
+    expect(r.hit).toBe(false);
     expect((r.state as KingyoState).poiLeft).toBe(2);
   });
 
   it("ポイが尽きたら終了。さらに押しても何も起きない", () => {
     const done: KingyoState = { id: "kingyo", fishX: 0.5, dir: 1, poiLeft: 0, caught: 2 };
     expect(isFinished(done)).toBe(true);
-    const r = pressMinigame(done, always(0));
+    const r = pressMinigame(done);
     expect(r.state).toBe(done);
-    expect(r.prizes).toEqual([]);
+    expect(r.hit).toBe(false);
   });
 });
 
@@ -96,25 +90,25 @@ describe("射的", () => {
     targets: [true, true, true],
   });
 
-  it("的の正面で撃つと倒れて景品が出る", () => {
+  it("的の正面で撃つと倒れて当たり", () => {
     // 的は 0.2 / 0.5 / 0.8 に立つ
-    const r = pressMinigame(aimedAt(0.5), always(0));
+    const r = pressMinigame(aimedAt(0.5));
     const after = r.state as ShatekiState;
-    expect(r.prizes).toEqual(["shateki-prize"]);
+    expect(r.hit).toBe(true);
     expect(after.targets).toEqual([true, false, true]);
     expect(after.shotsLeft).toBe(2);
   });
 
   it("外すと弾だけ減る", () => {
-    const r = pressMinigame(aimedAt(0.35), always(0));
-    expect(r.prizes).toEqual([]);
+    const r = pressMinigame(aimedAt(0.35));
+    expect(r.hit).toBe(false);
     expect((r.state as ShatekiState).shotsLeft).toBe(2);
   });
 
   it("倒れた的は撃てない", () => {
     const s: ShatekiState = { ...aimedAt(0.5), targets: [true, false, true] };
-    const r = pressMinigame(s, always(0));
-    expect(r.prizes).toEqual([]);
+    const r = pressMinigame(s);
+    expect(r.hit).toBe(false);
   });
 
   it("弾切れで終了", () => {

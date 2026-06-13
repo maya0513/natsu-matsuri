@@ -1,8 +1,6 @@
 // ミニゲームの操作 UI（離散情報のみ。動くマーカーは render 層のオーバーレイが描く）
 import type { GameAction } from "../game/actions";
-import { ITEM_INFO } from "../game/items";
 import { STALLS } from "../game/stalls";
-import type { ItemId } from "../game/types";
 import type { MinigameView } from "./bridge";
 
 type Props = {
@@ -18,11 +16,9 @@ const PRESS_LABEL: Record<MinigameView["id"], string> = {
 };
 
 const resultText = (view: MinigameView): string | undefined => {
-  if (view.last === undefined) return undefined;
-  if (view.last === "hit") return "やったね！";
-  if (view.last === "miss") return "ざんねん…";
-  // くじ引きは景品名を出す
-  return `${ITEM_INFO[view.last as ItemId].emoji} ${ITEM_INFO[view.last as ItemId].name}が当たった！`;
+  if (view.last === "hit") return "当たり";
+  if (view.last === "miss") return "はずれ";
+  return undefined;
 };
 
 export const MinigamePanel = ({ view, dispatch }: Props) => {
@@ -56,7 +52,7 @@ export const MinigamePanel = ({ view, dispatch }: Props) => {
           <button
             type="button"
             class="rounded bg-rose-500 px-4 py-1.5 font-bold text-slate-950 hover:bg-rose-400"
-            onClick={() => dispatch({ kind: "minigame-press", rng: Math.random })}
+            onClick={() => dispatch({ kind: "minigame-press" })}
           >
             {PRESS_LABEL[view.id]}（E でも可）
           </button>

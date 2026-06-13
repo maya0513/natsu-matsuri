@@ -1,6 +1,7 @@
 // 生成 PNG のローダ。ドット絵なので NearestFilter 固定
 import * as THREE from "three";
 import {
+  FOOD_SHEET,
   GROUND_TILE_TEXTURE,
   LANTERN_TEXTURE,
   PATH_TILE_TEXTURE,
@@ -13,6 +14,7 @@ import {
 export type GameTextures = {
   readonly player: THREE.Texture;
   readonly stalls: THREE.Texture;
+  readonly food: THREE.Texture;
   readonly torii: THREE.Texture;
   readonly shrine: THREE.Texture;
   readonly lantern: THREE.Texture;
@@ -31,14 +33,15 @@ const load = (loader: THREE.TextureLoader, url: string): Promise<THREE.Texture> 
 
 export const loadGameTextures = async (): Promise<GameTextures> => {
   const loader = new THREE.TextureLoader();
-  const [player, stalls, torii, shrine, lantern, tilePath, tileGround] = await Promise.all([
+  const [player, stalls, food, torii, shrine, lantern, tilePath, tileGround] = await Promise.all([
     load(loader, PLAYER_SHEET.url),
     load(loader, STALL_SHEET.url),
+    load(loader, FOOD_SHEET.url),
     load(loader, TORII_TEXTURE.url),
     load(loader, SHRINE_TEXTURE.url),
     load(loader, LANTERN_TEXTURE.url),
     load(loader, PATH_TILE_TEXTURE.url),
     load(loader, GROUND_TILE_TEXTURE.url),
   ]);
-  return { player, stalls, torii, shrine, lantern, tilePath, tileGround };
+  return { player, stalls, food, torii, shrine, lantern, tilePath, tileGround };
 };

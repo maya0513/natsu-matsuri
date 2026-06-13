@@ -23,35 +23,41 @@ describe("applyAction: close-dialog", () => {
   });
 });
 
-describe("applyAction: buy（お金は消費しない）", () => {
-  it("売っている屋台のダイアログ中なら持ち物に入り、購入イベントが出る", () => {
-    const r = applyAction(dialogAt("takoyaki"), { kind: "buy", item: "takoyaki" });
-    expect(r.state.inventory).toEqual(["takoyaki"]);
-    expect(r.state.mode.kind).toBe("dialog"); // 買ってもダイアログは開いたまま
-    expect(r.events).toEqual([{ kind: "item-bought" }]);
+describe("applyAction: eat（食べるだけ。持ち物もお金もない）", () => {
+  it("その屋台にある品物なら item-eaten イベントが出て、閉じて手に持つ", () => {
+    const r = applyAction(dialogAt("takoyaki"), { kind: "eat", item: "ramune" });
+    expect(r.state.mode).toEqual({ kind: "walk" }); // 食べたら閉じて walk に戻る
+    expect(r.state.heldItem).toBe("ramune"); // 手に持って歩く
+    expect(r.events).toEqual([{ kind: "item-eaten" }]);
   });
 
-  it("何度でも買える（コストなし）", () => {
-    let s = dialogAt("takoyaki");
-    for (let i = 0; i < 5; i++) s = apply(s, { kind: "buy", item: "ramune" });
-    expect(s.inventory).toHaveLength(5);
+  it("別の品を食べると手持ちが差し替わる", () => {
+    const first = applyAction(dialogAt("takoyaki"), { kind: "eat", item: "takoyaki" }).state;
+    const second = applyAction(
+      { ...first, mode: { kind: "dialog", stallId: "takoyaki" } },
+      { kind: "eat", item: "ramune" },
+    ).state;
+    expect(second.heldItem).toBe("ramune");
   });
 
-  it("その屋台で売っていないものは買えない", () => {
+  it("その屋台にない品物は食べられない", () => {
     const before = dialogAt("takoyaki");
-    const r = applyAction(before, { kind: "buy", item: "ringoame" });
+    const r = applyAction(before, { kind: "eat", item: "ringoame" });
     expect(r.state).toBe(before);
     expect(r.events).toEqual([]);
   });
 
-  it("walk モードでは買えない", () => {
-    const s = apply(initialGameState, { kind: "buy", item: "takoyaki" });
-    expect(s).toBe(initialGameState);
+  it("walk モードでは食べられない", () => {
+    const r = applyAction(initialGameState, { kind: "eat", item: "takoyaki" });
+    expect(r.state).toBe(initialGameState);
+    expect(r.events).toEqual([]);
   });
 
-  it("ミニゲーム屋台のダイアログでは buy は無効", () => {
-    const s = apply(dialogAt("kingyo"), { kind: "buy", item: "goldfish" });
-    expect(s.inventory).toEqual([]);
+  it("ミニゲーム屋台のダイアログでは eat は無効", () => {
+    const before = dialogAt("kingyo");
+    const r = applyAction(before, { kind: "eat", item: "takoyaki" });
+    expect(r.state).toBe(before);
+    expect(r.events).toEqual([]);
   });
 });
 
@@ -67,14 +73,16 @@ describe("applyAction: ミニゲーム", () => {
     expect(apply(before, { kind: "start-minigame" })).toBe(before);
   });
 
-  it("minigame-press で景品が持ち物に入り、hit イベントが出る", () => {
+  it("minigame-press で当たると hit イベントが出る", () => {
     const inKuji: GameState = {
       ...initialGameState,
       mode: { kind: "minigame", game: { id: "kuji" } },
     };
-    const r = applyAction(inKuji, { kind: "minigame-press", rng: () => 0.9 });
-    expect(r.state.inventory).toEqual(["kuji-prize-big"]);
+    const r = applyAction(inKuji, { kind: "minigame-press" });
     expect(r.events).toEqual([{ kind: "minigame-hit" }]);
+    if (r.state.mode.kind === "minigame" && r.state.mode.game.id === "kuji") {
+      expect(r.state.mode.game.last).toBe("hit");
+    }
   });
 
   it("外したら miss イベント", () => {
@@ -82,8 +90,7 @@ describe("applyAction: ミニゲーム", () => {
       ...initialGameState,
       mode: { kind: "minigame", game: { id: "yoyo", t: 0.05, dir: 1 } },
     };
-    const r = applyAction(inYoyo, { kind: "minigame-press", rng: () => 0 });
-    expect(r.state.inventory).toEqual([]);
+    const r = applyAction(inYoyo, { kind: "minigame-press" });
     expect(r.events).toEqual([{ kind: "minigame-miss" }]);
   });
 
@@ -95,7 +102,7 @@ describe("applyAction: ミニゲーム", () => {
         game: { id: "kingyo", fishX: 0.5, dir: 1, poiLeft: 0, caught: 1 },
       },
     };
-    const r = applyAction(done, { kind: "minigame-press", rng: () => 0 });
+    const r = applyAction(done, { kind: "minigame-press" });
     expect(r.state).toBe(done);
     expect(r.events).toEqual([]);
   });

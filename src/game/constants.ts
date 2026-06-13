@@ -17,8 +17,5 @@ export const FIREWORKS_FIRST_LAUNCH = 5;
 /** 花火の打ち上げ間隔（秒） */
 export const FIREWORKS_INTERVAL = 12;
 
-/** 屋台に話しかけられる距離（unit） */
+/** 屋台を調べられる距離（unit） */
 export const INTERACT_RADIUS = 2.2;
-
-/** ミニゲームの料金表示（円/回）。雰囲気のための飾りで、実際には消費しない */
-export const MINIGAME_FEE = 300;

@@ -1,6 +1,6 @@
 // ミニゲーム共通の入口。
 // stepMinigame: 時間経過（マーカーの発振など）/ pressMinigame: 「押す」操作
-import type { ItemId, MinigameId, MinigameState, Rng } from "../types";
+import type { MinigameId, MinigameState } from "../types";
 
 /** 成功判定の窓（中央 0.5 からの距離） */
 export const HIT_WINDOW = {
@@ -21,7 +21,8 @@ export const SHATEKI_TARGETS = [0.2, 0.5, 0.8] as const;
 
 export type MinigamePress = {
   readonly state: MinigameState;
-  readonly prizes: readonly ItemId[];
+  /** この press が当たりだったか（結果表示・効果音用） */
+  readonly hit: boolean;
 };
 
 export const initMinigame = (id: MinigameId): MinigameState => {
@@ -77,21 +78,18 @@ export const stepMinigame = (state: MinigameState, dt: number): MinigameState =>
   }
 };
 
-export const pressMinigame = (state: MinigameState, rng: Rng): MinigamePress => {
+export const pressMinigame = (state: MinigameState): MinigamePress => {
   switch (state.id) {
     case "kuji": {
-      const prize: ItemId = rng() < 0.75 ? "kuji-prize-small" : "kuji-prize-big";
-      return { state: { ...state, last: prize }, prizes: [prize] };
+      // 引けば必ず当たり
+      return { state: { ...state, last: "hit" }, hit: true };
     }
     case "yoyo": {
       const hit = Math.abs(state.t - 0.5) <= HIT_WINDOW.yoyo;
-      return {
-        state: { ...state, last: hit ? "hit" : "miss" },
-        prizes: hit ? ["yoyo-balloon"] : [],
-      };
+      return { state: { ...state, last: hit ? "hit" : "miss" }, hit };
     }
     case "kingyo": {
-      if (state.poiLeft === 0) return { state, prizes: [] };
+      if (state.poiLeft === 0) return { state, hit: false };
       const hit = Math.abs(state.fishX - 0.5) <= HIT_WINDOW.kingyo;
       return {
         state: {
@@ -100,11 +98,11 @@ export const pressMinigame = (state: MinigameState, rng: Rng): MinigamePress => 
           caught: state.caught + (hit ? 1 : 0),
           last: hit ? "hit" : "miss",
         },
-        prizes: hit ? ["goldfish"] : [],
+        hit,
       };
     }
     case "shateki": {
-      if (state.shotsLeft === 0) return { state, prizes: [] };
+      if (state.shotsLeft === 0) return { state, hit: false };
       const hitIndex = SHATEKI_TARGETS.findIndex(
         (tx, i) => state.targets[i] && Math.abs(state.aimX - tx) <= HIT_WINDOW.shateki,
       );
@@ -120,7 +118,7 @@ export const pressMinigame = (state: MinigameState, rng: Rng): MinigamePress => 
           targets,
           last: hitIndex >= 0 ? "hit" : "miss",
         },
-        prizes: hitIndex >= 0 ? ["shateki-prize"] : [],
+        hit: hitIndex >= 0,
       };
     }
   }

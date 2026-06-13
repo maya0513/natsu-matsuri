@@ -9,7 +9,6 @@ export const initialGameState: GameState = {
     facing: "up",
     moving: false,
   },
-  inventory: [],
   mode: { kind: "walk" },
   fireworks: initialFireworks,
 };

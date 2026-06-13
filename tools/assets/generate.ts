@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { ASSET_SCALE } from "../../src/assets/meta.ts";
 import { encodePng } from "./png.ts";
 import { type PixelCanvas, upscale } from "./pixel.ts";
+import { drawFoodSheet } from "./sprites/food.ts";
 import { drawPlayerSheet } from "./sprites/player.ts";
 import { drawStallSheet } from "./sprites/stalls.ts";
 import { drawLantern, drawShrine, drawTorii } from "./sprites/structures.ts";
@@ -37,6 +38,7 @@ const writeWav = (name: string, samples: Float32Array): void => {
 mkdirSync(outDir, { recursive: true });
 write("player.png", drawPlayerSheet());
 write("stalls.png", drawStallSheet());
+write("food.png", drawFoodSheet());
 write("torii.png", drawTorii());
 write("shrine.png", drawShrine());
 write("lantern.png", drawLantern());

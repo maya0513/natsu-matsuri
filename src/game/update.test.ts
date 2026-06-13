@@ -85,13 +85,16 @@ describe("update（固定タイムステップ統合）", () => {
     }
   });
 
-  it("minigame モードで interact すると press 扱いになり景品が持ち物へ", () => {
+  it("minigame モードで interact すると press 扱いになり hit イベントが出る", () => {
     const s: GameState = {
       ...initialGameState,
       mode: { kind: "minigame", game: { id: "yoyo", t: 0.5, dir: 1 } },
     };
-    const { state } = run(s, { move: { x: 0, y: 0 }, interact: true }, 1 / 60);
-    expect(state.inventory).toEqual(["yoyo-balloon"]);
+    const { state, events } = run(s, { move: { x: 0, y: 0 }, interact: true }, 1 / 60);
+    expect(events).toEqual([{ kind: "minigame-hit" }]);
+    if (state.mode.kind === "minigame" && state.mode.game.id === "yoyo") {
+      expect(state.mode.game.last).toBe("hit");
+    }
   });
 
   it("minigame モード中は移動しない", () => {

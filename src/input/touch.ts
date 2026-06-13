@@ -94,7 +94,7 @@ export const createTouchInput = (parent: HTMLElement = document.body): InputSour
   base.addEventListener("pointerup", onPointerEnd);
   base.addEventListener("pointercancel", onPointerEnd);
 
-  // --- アクションボタン（話しかける／ミニゲームの操作）---
+  // --- アクションボタン（調べる／ミニゲームの操作）---
   const button = document.createElement("button");
   button.type = "button";
   button.textContent = "🏮";
@@ -121,11 +121,19 @@ export const createTouchInput = (parent: HTMLElement = document.body): InputSour
   overlay.appendChild(button);
   parent.appendChild(overlay);
 
-  // ダイアログ／ミニゲーム表示中はスティックを隠す（中央ダイアログとの重なり回避）。
+  // ダイアログ／ミニゲーム表示中は操作系を丸ごと隠す。
+  // この間は移動が凍結され、操作はモーダル内のボタンで完結するため、
+  // スティックとアクションボタンがモーダルに重なってタップを奪う問題を防ぐ。
   // bridge の signal が変化したときだけ走るので毎フレームの負荷はない。
   const stopEffect = effect(() => {
     const blocked = dialogStallSig.value !== undefined || minigameSig.value !== undefined;
-    base.style.display = blocked ? "none" : "block";
+    overlay.style.display = blocked ? "none" : "block";
+    if (blocked) {
+      // ドラッグ中に隠れても方向が残らないよう入力をリセット
+      activePointer = undefined;
+      setKnob(0, 0);
+      move = { x: 0, y: 0 };
+    }
   });
 
   return {

@@ -54,7 +54,7 @@ const handleEvents = (events: readonly GameEvent[]): void => {
         view.spawnFirework(e.seed, state.time);
         audio.play("launch");
         break;
-      case "item-bought":
+      case "item-eaten":
         audio.play("buy");
         break;
       case "minigame-hit":

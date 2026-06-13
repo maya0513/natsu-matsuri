@@ -55,6 +55,16 @@ export const PAL = {
   target: 0xe8e4daff,
   targetRed: 0xc4452eff,
   candyApple: 0xc41e3aff,
+  candyAppleHi: 0xff8aa0ff,
   takoyakiBall: 0xb5763cff,
   kujiBox: 0x8a4a8aff,
+
+  // 食べ物（手持ち用）
+  sauceDark: 0x5a3a22ff,
+  aonori: 0x4a7a3cff,
+  ramuneGlass: 0x8fd0e8ff,
+  ramuneGlassHi: 0xcdeefaff,
+  ramuneCap: 0x4a8fb5ff,
+  wataamePink: 0xf2a0c8ff,
+  wataameLight: 0xfbd0e6ff,
 } as const;

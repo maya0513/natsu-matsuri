@@ -12,27 +12,18 @@ export type Direction = "up" | "down" | "left" | "right";
 /** 屋台の識別子（売買2種 + ミニゲーム4種） */
 export type StallId = "takoyaki" | "ringoame" | "kingyo" | "shateki" | "yoyo" | "kuji";
 
-/** 持ち物になり得るアイテム */
-export type ItemId =
-  | "takoyaki"
-  | "ramune"
-  | "ringoame"
-  | "wataame"
-  | "goldfish"
-  | "yoyo-balloon"
-  | "kuji-prize-small"
-  | "kuji-prize-big"
-  | "shateki-prize";
+/** 屋台で食べられる品物 */
+export type ItemId = "takoyaki" | "ramune" | "ringoame" | "wataame";
 
 /** ミニゲームの種類 */
 export type MinigameId = "kingyo" | "shateki" | "yoyo" | "kuji";
 
 // --- ミニゲーム状態（すべて純粋に更新される） ---
 
-/** くじ引き: ボタンで引くだけ。last は直前の結果表示用 */
+/** くじ引き: ボタンで引くだけ。引けば必ず当たる。last は直前の結果表示用 */
 export type KujiState = {
   readonly id: "kuji";
-  readonly last?: ItemId;
+  readonly last?: "hit";
 };
 
 /** ヨーヨー釣り: 0..1 を往復するマーカーを中央で止める */
@@ -88,11 +79,8 @@ export type GameState = {
   /** ゲーム経過秒 */
   readonly time: number;
   readonly player: Player;
-  /**
-   * 持ち物。お金の概念はない（価格表示は雰囲気のための飾りで、
-   * 買う・遊ぶの選択にコストは発生しない）
-   */
-  readonly inventory: readonly ItemId[];
+  /** いま手に持って歩いている食べ物（屋台で食べた直近の品。次に食べると差し替わる） */
+  readonly heldItem?: ItemId;
   readonly mode: Mode;
   readonly fireworks: FireworksState;
 };
@@ -112,7 +100,7 @@ export type GameEvent =
       /** 演出のバリエーション用シード（0〜1） */
       readonly seed: number;
     }
-  | { readonly kind: "item-bought" }
+  | { readonly kind: "item-eaten" }
   | { readonly kind: "minigame-hit" }
   | { readonly kind: "minigame-miss" };
 

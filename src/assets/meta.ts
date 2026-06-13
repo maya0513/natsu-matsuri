@@ -23,6 +23,14 @@ export const STALL_SHEET = {
   order: ["takoyaki", "ringoame", "kingyo", "shateki", "yoyo", "kuji"],
 } as const;
 
+/** 手持ち食べ物シート。order は ItemId（食べ物）と一致 */
+export const FOOD_SHEET = {
+  url: "/assets/food.png",
+  frameW: 20,
+  frameH: 20,
+  order: ["takoyaki", "ramune", "ringoame", "wataame"],
+} as const;
+
 export const TORII_TEXTURE = { url: "/assets/torii.png", w: 160, h: 160 } as const;
 export const SHRINE_TEXTURE = { url: "/assets/shrine.png", w: 192, h: 128 } as const;
 export const LANTERN_TEXTURE = { url: "/assets/lantern.png", w: 16, h: 24 } as const;

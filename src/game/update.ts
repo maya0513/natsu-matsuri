@@ -21,7 +21,7 @@ export const update = (state: GameState, intent: Intent, dt: number, rng: Rng): 
   const events: GameEvent[] = [];
 
   if (working.mode.kind === "walk" && intent.interact) {
-    // walk 中に interact したら最寄りの屋台に話しかける
+    // walk 中に interact したら最寄りの屋台を調べる
     const stall = nearestStall(player.pos, INTERACT_RADIUS);
     if (stall) working = { ...working, mode: { kind: "dialog", stallId: stall.id } };
   } else if (working.mode.kind === "minigame") {
@@ -31,7 +31,7 @@ export const update = (state: GameState, intent: Intent, dt: number, rng: Rng): 
       mode: { kind: "minigame", game: stepMinigame(working.mode.game, dt) },
     };
     if (intent.interact) {
-      const pressed = applyPress(working, rng);
+      const pressed = applyPress(working);
       working = pressed.state;
       events.push(...pressed.events);
     }

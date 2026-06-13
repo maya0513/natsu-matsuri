@@ -1,15 +1,14 @@
 // UI 層から届く操作を状態に適用する純粋関数
-import { addItem } from "./inventory";
-import { priceAt } from "./items";
+import { isOnMenu } from "./items";
 import { initMinigame, pressMinigame } from "./minigames";
 import { STALLS } from "./stalls";
-import type { GameEvent, GameState, ItemId, Rng } from "./types";
+import type { GameEvent, GameState, ItemId } from "./types";
 
 export type GameAction =
   | { readonly kind: "close-dialog" }
-  | { readonly kind: "buy"; readonly item: ItemId }
+  | { readonly kind: "eat"; readonly item: ItemId }
   | { readonly kind: "start-minigame" }
-  | { readonly kind: "minigame-press"; readonly rng: Rng }
+  | { readonly kind: "minigame-press" }
   | { readonly kind: "retry-minigame" }
   | { readonly kind: "exit-minigame" };
 
@@ -21,17 +20,15 @@ export type ActionResult = {
 const noEvents = (state: GameState): ActionResult => ({ state, events: [] });
 
 /** ミニゲームの press 結果を状態 + イベントへ反映する（update 側と共用） */
-export const applyPress = (state: GameState, rng: Rng): ActionResult => {
+export const applyPress = (state: GameState): ActionResult => {
   if (state.mode.kind !== "minigame") return noEvents(state);
   const before = state.mode.game;
-  const pressed = pressMinigame(before, rng);
+  const pressed = pressMinigame(before);
   if (pressed.state === before) return noEvents(state); // 終了後など、何も起きない press
 
-  let next: GameState = { ...state, mode: { kind: "minigame", game: pressed.state } };
-  for (const prize of pressed.prizes) next = addItem(next, prize);
   return {
-    state: next,
-    events: [{ kind: pressed.prizes.length > 0 ? "minigame-hit" : "minigame-miss" }],
+    state: { ...state, mode: { kind: "minigame", game: pressed.state } },
+    events: [{ kind: pressed.hit ? "minigame-hit" : "minigame-miss" }],
   };
 };
 
@@ -41,11 +38,15 @@ export const applyAction = (state: GameState, action: GameAction): ActionResult 
       if (state.mode.kind !== "dialog") return noEvents(state);
       return noEvents({ ...state, mode: { kind: "walk" } });
     }
-    case "buy": {
-      // お金の概念はない。その屋台で売っているものなら持ち物に入るだけ
+    case "eat": {
+      // 食べるだけ。お金はかからない。その屋台にある品物のみ。
+      // 食べたらダイアログを閉じて walk に戻り、その品を手に持って歩く
       if (state.mode.kind !== "dialog") return noEvents(state);
-      if (priceAt(state.mode.stallId, action.item) === undefined) return noEvents(state);
-      return { state: addItem(state, action.item), events: [{ kind: "item-bought" }] };
+      if (!isOnMenu(state.mode.stallId, action.item)) return noEvents(state);
+      return {
+        state: { ...state, mode: { kind: "walk" }, heldItem: action.item },
+        events: [{ kind: "item-eaten" }],
+      };
     }
     case "start-minigame": {
       if (state.mode.kind !== "dialog") return noEvents(state);
@@ -64,7 +65,7 @@ export const applyAction = (state: GameState, action: GameAction): ActionResult 
       return noEvents({ ...state, mode: { kind: "minigame", game: initMinigame(stallId) } });
     }
     case "minigame-press": {
-      return applyPress(state, action.rng);
+      return applyPress(state);
     }
     case "retry-minigame": {
       if (state.mode.kind !== "minigame") return noEvents(state);

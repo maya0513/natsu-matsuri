@@ -1,7 +1,7 @@
 // スプライト（板ポリ）の生成と GameState からの同期
 import * as THREE from "three";
-import { PLAYER_SHEET, PX_PER_UNIT } from "../assets/meta";
-import type { Player } from "../game/types";
+import { FOOD_SHEET, PLAYER_SHEET, PX_PER_UNIT } from "../assets/meta";
+import type { Direction, ItemId, Player } from "../game/types";
 
 /** ピクセル寸法 → ワールド unit */
 export const toUnits = (px: number): number => px / PX_PER_UNIT;
@@ -43,6 +43,44 @@ export const createPlayerSprite = (sheet: THREE.Texture): PlayerSprite => {
         ? (WALK_CYCLE[Math.floor(time * WALK_FPS) % WALK_CYCLE.length] ?? 0)
         : 0;
       setFrame(col, PLAYER_SHEET.rowOf[player.facing]);
+    },
+  };
+};
+
+export type HeldItemSprite = {
+  readonly mesh: THREE.Mesh;
+  /** 手に持つ食べ物を反映。item が無ければ非表示 */
+  readonly sync: (player: Player, item: ItemId | undefined, time: number) => void;
+};
+
+/** 浴衣キャラが手に持って歩く食べ物（プレイヤーの手元に追従する小さな板ポリ） */
+export const createHeldItemSprite = (sheet: THREE.Texture): HeldItemSprite => {
+  const w = toUnits(FOOD_SHEET.frameW);
+  const h = toUnits(FOOD_SHEET.frameH);
+
+  const tex = sheet.clone();
+  tex.repeat.set(1 / FOOD_SHEET.order.length, 1);
+
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), spriteMaterial(tex));
+  mesh.visible = false;
+  mesh.renderOrder = 1; // プレイヤーより手前に描く
+
+  // 向きごとの手元の左右オフセット
+  const handX: Record<Direction, number> = { down: 0.24, up: 0.24, left: -0.36, right: 0.36 };
+
+  return {
+    mesh,
+    sync: (player, item, time) => {
+      const idx = item ? FOOD_SHEET.order.indexOf(item) : -1;
+      if (idx < 0) {
+        mesh.visible = false;
+        return;
+      }
+      mesh.visible = true;
+      tex.offset.set(idx / FOOD_SHEET.order.length, 0);
+      // 歩行中はわずかに上下して躍動感を出す
+      const bob = player.moving ? Math.sin(time * 8 * Math.PI) * 0.03 : 0;
+      mesh.position.set(player.pos.x + handX[player.facing], h / 2 + 0.18 + bob, player.pos.y + 0.2);
     },
   };
 };
