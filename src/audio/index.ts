@@ -1,13 +1,13 @@
 // 音の再生管理（howler.js）。音源は全て tools/assets で合成した WAV
-import { Howl, Howler } from "howler";
+import { Howl } from "howler";
 import { AUDIO, type SeName } from "../assets/meta";
 
 export type GameAudio = {
-  /** 初回のユーザー操作後に呼ぶ（autoplay 制限対応） */
+  /** 初回のユーザー操作後に呼ぶ（autoplay 制限対応）。SE の再生を解禁する */
   readonly start: () => void;
   readonly play: (se: SeName) => void;
-  /** @returns ミュート後の状態 */
-  readonly toggleMute: () => boolean;
+  /** BGM（祭囃子）の再生/停止を切り替える。既定は停止。@returns 切替後に再生中か */
+  readonly toggleBgm: () => boolean;
 };
 
 export const createAudio = (): GameAudio => {
@@ -21,21 +21,21 @@ export const createAudio = (): GameAudio => {
   };
 
   let started = false;
-  let muted = false;
+  let bgmOn = false; // 音楽は既定で無効（ユーザーが任意で有効化する）
 
   return {
     start: () => {
-      if (started) return;
+      // SE を解禁するだけ。BGM は自動再生しない（既定で無効）
       started = true;
-      bgm.play();
     },
     play: (se) => {
       if (started) ses[se].play();
     },
-    toggleMute: () => {
-      muted = !muted;
-      Howler.mute(muted);
-      return muted;
+    toggleBgm: () => {
+      bgmOn = !bgmOn;
+      if (bgmOn) bgm.play();
+      else bgm.pause();
+      return bgmOn;
     },
   };
 };

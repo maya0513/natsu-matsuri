@@ -9,13 +9,14 @@ import { dialogStallSig, minigameSig, nearbyStallSig } from "./bridge";
 
 type Props = {
   readonly dispatch: (action: GameAction) => void;
-  readonly toggleMute: () => boolean;
+  /** BGM の再生/停止を切り替える。@returns 切替後に再生中か */
+  readonly toggleBgm: () => boolean;
 };
 
 const touch = isTouchDevice();
 
-export const App = ({ dispatch, toggleMute }: Props) => {
-  const muted = useSignal(false);
+export const App = ({ dispatch, toggleBgm }: Props) => {
+  const musicOn = useSignal(false); // 音楽は既定で無効
   const showHint = useSignal(touch);
   const dialogStall = dialogStallSig.value;
   const minigame = minigameSig.value;
@@ -48,12 +49,12 @@ export const App = ({ dispatch, toggleMute }: Props) => {
         <button
           type="button"
           class="rounded-full border border-slate-500/50 bg-slate-950/80 px-3 py-1.5 text-slate-300 hover:bg-slate-800"
-          title={muted.value ? "音を出す" : "ミュート"}
+          title={musicOn.value ? "音楽を止める" : "音楽を流す"}
           onClick={() => {
-            muted.value = toggleMute();
+            musicOn.value = toggleBgm();
           }}
         >
-          {muted.value ? "🔇" : "🔊"}
+          {musicOn.value ? "🎵" : "🔇"}
         </button>
       </div>
 

@@ -42,7 +42,7 @@ const pendingActions: GameAction[] = [];
 const dispatch = (action: GameAction): void => {
   pendingActions.push(action);
 };
-mountUi(uiRoot, dispatch, () => audio.toggleMute());
+mountUi(uiRoot, dispatch, () => audio.toggleBgm());
 
 let state: GameState = initialGameState;
 
