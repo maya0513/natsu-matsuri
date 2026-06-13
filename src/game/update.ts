@@ -1,6 +1,7 @@
 import { applyAction, applyPress } from "./actions";
 import { INTERACT_RADIUS } from "./constants";
 import { stepFireworks } from "./fireworks";
+import { SHOP_MENU } from "./items";
 import { isFinished, stepMinigame } from "./minigames";
 import { movePlayer } from "./movement";
 import { nearestStall } from "./stalls";
@@ -29,9 +30,14 @@ export const update = (state: GameState, intent: Intent, dt: number, rng: Rng): 
       if (stall) working = { ...working, mode: { kind: "dialog", stallId: stall.id } };
     }
   } else if (working.mode.kind === "dialog") {
-    // 受付ダイアログ: interact でミニゲーム屋台なら開始（食べ物屋台では何もしない）
+    // 受付ダイアログ: interact でミニゲーム屋台なら開始。食べ物屋台は品が1つなら買う
+    // （複数品の屋台は数字キーで選ぶ）
     if (intent.interact) {
-      const r = applyAction(working, { kind: "start-minigame" });
+      const menu = SHOP_MENU[working.mode.stallId];
+      const only = menu?.length === 1 ? menu[0] : undefined;
+      const r = only
+        ? applyAction(working, { kind: "eat", item: only })
+        : applyAction(working, { kind: "start-minigame" });
       working = r.state;
       events.push(...r.events);
     }

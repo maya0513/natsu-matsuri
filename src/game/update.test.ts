@@ -64,13 +64,26 @@ describe("update（固定タイムステップ統合）", () => {
     expect(state.mode).toEqual({ kind: "walk" });
   });
 
-  it("食べ物屋台のダイアログでは interact で遷移しない（選択は数字キー）", () => {
+  it("複数品の食べ物屋台のダイアログでは interact で遷移しない（選択は数字キー）", () => {
+    // たこ焼き屋は たこ焼き＋ラムネ の 2 品
     const inDialog: GameState = {
       ...initialGameState,
       mode: { kind: "dialog", stallId: "takoyaki" },
     };
     const { state } = run(inDialog, { move: { x: 0, y: 0 }, interact: true }, 1 / 60);
     expect(state.mode).toEqual({ kind: "dialog", stallId: "takoyaki" });
+  });
+
+  it("単品の食べ物屋台のダイアログでは interact でその品を買う", () => {
+    // 焼きそば屋は 1 品なので E で買える
+    const inDialog: GameState = {
+      ...initialGameState,
+      mode: { kind: "dialog", stallId: "yakisoba" },
+    };
+    const { state, events } = run(inDialog, { move: { x: 0, y: 0 }, interact: true }, 1 / 60);
+    expect(state.mode).toEqual({ kind: "walk" });
+    expect(state.heldItem).toBe("yakisoba");
+    expect(events).toEqual([{ kind: "item-eaten" }]);
   });
 
   it("ミニゲーム屋台のダイアログでは interact でゲームが始まる", () => {
