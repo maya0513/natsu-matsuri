@@ -61,18 +61,18 @@ export const App = ({ dispatch, toggleSound }: Props) => {
       {/* 操作ヒント（タッチ時のみ、開始数秒だけ） */}
       {touch && showHint.value && !dialogStall && !minigame && (
         <div class="absolute inset-x-0 top-16 mx-auto w-fit rounded bg-slate-950/80 px-4 py-2 text-center text-sm text-slate-100">
-          左下のスティックで移動／🏮 ボタンで調べる
+          左下のスティックで移動／🏮 で屋台へ
         </div>
       )}
 
-      {/* 調べるプロンプト */}
+      {/* 屋台へ向かうプロンプト */}
       {!dialogStall && !minigame && nearby && (
         <div class="absolute inset-x-0 bottom-10 mx-auto w-fit rounded bg-slate-950/80 px-4 py-2 text-sm text-slate-100">
           {touch ? (
-            <>🏮 ボタンで{nearby.name}を調べる</>
+            <>🏮：{nearby.name}屋台へ</>
           ) : (
             <>
-              <kbd class="rounded bg-slate-700 px-1.5">E</kbd> で{nearby.name}を調べる
+              <kbd class="rounded bg-slate-700 px-1.5">E</kbd>：{nearby.name}屋台へ
             </>
           )}
         </div>

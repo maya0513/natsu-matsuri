@@ -19,7 +19,7 @@ test("起動して歩いて屋台を調べられる", async ({ page }) => {
   await page.keyboard.up("a");
 
   // 近接プロンプトが出て、E でダイアログが開く
-  await expect(page.getByText("を調べる")).toBeVisible({ timeout: 5000 });
+  await expect(page.getByText("屋台へ")).toBeVisible({ timeout: 5000 });
   await page.keyboard.press("e");
   await expect(page.getByRole("button", { name: /食べる/ }).first()).toBeVisible();
 
