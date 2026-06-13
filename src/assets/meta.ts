@@ -42,6 +42,8 @@ export const HELD_SHEET = {
 
 export const TORII_TEXTURE = { url: "/assets/torii.png", w: 160, h: 160 } as const;
 export const SHRINE_TEXTURE = { url: "/assets/shrine.png", w: 192, h: 128 } as const;
+export const YAGURA_TEXTURE = { url: "/assets/yagura.png", w: 112, h: 160 } as const;
+export const STAIRS_TEXTURE = { url: "/assets/stairs.png", w: 128, h: 80 } as const;
 export const LANTERN_TEXTURE = { url: "/assets/lantern.png", w: 16, h: 24 } as const;
 export const PATH_TILE_TEXTURE = { url: "/assets/tile-path.png", size: 32 } as const;
 export const GROUND_TILE_TEXTURE = { url: "/assets/tile-ground.png", size: 32 } as const;

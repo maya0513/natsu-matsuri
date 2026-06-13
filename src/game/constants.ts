@@ -3,10 +3,10 @@
 /** プレイヤー移動速度（unit/秒） */
 export const PLAYER_SPEED = 4;
 
-/** 歩行可能範囲。参道が y 軸方向（奥が神社）に伸びる縦長マップ */
+/** 歩行可能範囲。参道（縦）＋中央の広場（横）＋左の河川敷まで歩ける横長め縦長マップ */
 export const MAP_BOUNDS = {
-  minX: -10,
-  maxX: 10,
+  minX: -13,
+  maxX: 13,
   minY: -20,
   maxY: 20,
 } as const;
