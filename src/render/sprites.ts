@@ -2,6 +2,7 @@
 import * as THREE from "three";
 import { HELD_SHEET, PLAYER_SHEET, PX_PER_UNIT } from "../assets/meta";
 import type { CarriedId, Direction, Player } from "../game/types";
+import { groundHeightAt } from "./terrain";
 
 /** ピクセル寸法 → ワールド unit */
 export const toUnits = (px: number): number => px / PX_PER_UNIT;
@@ -38,7 +39,7 @@ export const createPlayerSprite = (sheet: THREE.Texture): PlayerSprite => {
   return {
     mesh,
     sync: (player, time) => {
-      mesh.position.set(player.pos.x, h / 2, player.pos.y);
+      mesh.position.set(player.pos.x, groundHeightAt(player.pos.x) + h / 2, player.pos.y);
       const col = player.moving
         ? (WALK_CYCLE[Math.floor(time * WALK_FPS) % WALK_CYCLE.length] ?? 0)
         : 0;
@@ -80,7 +81,12 @@ export const createHeldItemSprite = (sheet: THREE.Texture): HeldItemSprite => {
       tex.offset.set(idx / HELD_SHEET.order.length, 0);
       // 歩行中はわずかに上下して躍動感を出す
       const bob = player.moving ? Math.sin(time * 8 * Math.PI) * 0.03 : 0;
-      mesh.position.set(player.pos.x + handX[player.facing], h / 2 + 0.18 + bob, player.pos.y + 0.2);
+      const ground = groundHeightAt(player.pos.x);
+      mesh.position.set(
+        player.pos.x + handX[player.facing],
+        ground + h / 2 + 0.18 + bob,
+        player.pos.y + 0.2,
+      );
     },
   };
 };

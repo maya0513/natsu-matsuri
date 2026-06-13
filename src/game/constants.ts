@@ -3,9 +3,9 @@
 /** プレイヤー移動速度（unit/秒） */
 export const PLAYER_SPEED = 4;
 
-/** 歩行可能範囲。参道（縦）＋中央の広場（横）＋左の河川敷まで歩ける横長め縦長マップ */
+/** 歩行可能範囲。蛇行する参道（台地）＋石段で下りる左の河川敷まで歩ける。minX は川の手前 */
 export const MAP_BOUNDS = {
-  minX: -13,
+  minX: -11,
   maxX: 13,
   minY: -20,
   maxY: 20,

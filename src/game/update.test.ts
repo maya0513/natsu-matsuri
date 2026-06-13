@@ -53,7 +53,7 @@ describe("update（固定タイムステップ統合）", () => {
   it("屋台の近くで interact すると dialog モードになる", () => {
     const nearTakoyaki: GameState = {
       ...initialGameState,
-      player: { ...initialGameState.player, pos: { x: -4, y: 6 } },
+      player: { ...initialGameState.player, pos: { x: 2.6, y: 11 } },
     };
     const { state } = run(nearTakoyaki, { move: { x: 0, y: 0 }, interact: true }, 1 / 60);
     expect(state.mode).toEqual({ kind: "dialog", stallId: "takoyaki" });

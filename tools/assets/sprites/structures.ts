@@ -37,7 +37,7 @@ export const drawTorii = (): PixelCanvas => {
 };
 
 export const SHRINE_W = 96;
-export const SHRINE_H = 64;
+export const SHRINE_H = 52;
 
 /** 神社の拝殿（正面）。夜のシルエット + 暖色の御簾 */
 export const drawShrine = (): PixelCanvas => {
@@ -65,11 +65,6 @@ export const drawShrine = (): PixelCanvas => {
   // 賽銭箱
   fillRect(c, 40, 46, 16, 6, PAL.wood);
   fillRect(c, 41, 47, 14, 1, PAL.woodDark);
-
-  // 石段
-  fillRect(c, 30, 52, 36, 4, PAL.stoneLight);
-  fillRect(c, 26, 56, 44, 4, PAL.stoneDark);
-  fillRect(c, 22, 60, 52, 4, PAL.stoneLight);
 
   return c;
 };
@@ -129,22 +124,6 @@ export const drawYagura = (): PixelCanvas => {
     fillRect(c, lx, 16, 4, 1, PAL.lanternCap);
     fillRect(c, lx, 17, 4, 5, PAL.lanternBody);
     fillRect(c, lx + 1, 18, 2, 3, PAL.lanternGlow);
-  }
-  return c;
-};
-
-export const STAIRS_W = 64;
-export const STAIRS_H = 40;
-
-/** 石段（神社へ上る階段）。正面から見た段々 */
-export const drawStairs = (): PixelCanvas => {
-  const c = createCanvas(STAIRS_W, STAIRS_H);
-  const steps = 5;
-  for (let i = 0; i < steps; i++) {
-    const inset = i * 5; // 上の段ほど狭い
-    const y = STAIRS_H - (i + 1) * 7;
-    fillRect(c, inset, y, STAIRS_W - inset * 2, 5, PAL.stoneLight);
-    fillRect(c, inset, y + 5, STAIRS_W - inset * 2, 2, PAL.stoneDark);
   }
   return c;
 };

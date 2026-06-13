@@ -6,6 +6,7 @@ import { createFireworksRenderer } from "./fireworks";
 import { createMinigameOverlay } from "./minigameOverlay";
 import { createScene } from "./scene";
 import { createHeldItemSprite, createPlayerSprite } from "./sprites";
+import { groundHeightAt } from "./terrain";
 import { loadGameTextures } from "./textures";
 
 export type GameView = {
@@ -56,7 +57,11 @@ export const createGameView = async (
       player.sync(state.player, state.time);
       heldItem.sync(state.player, state.heldItem, state.time);
       followPlayer(camera, state.player.pos);
-      playerLight.position.set(state.player.pos.x, 1.6, state.player.pos.y);
+      playerLight.position.set(
+        state.player.pos.x,
+        groundHeightAt(state.player.pos.x) + 1.6,
+        state.player.pos.y,
+      );
       fireworks.update(state.time);
       renderer.render(scene, camera);
       overlay.draw(state);

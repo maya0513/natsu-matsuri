@@ -9,13 +9,7 @@ import { type PixelCanvas, upscale } from "./pixel.ts";
 import { drawHeldItemsSheet } from "./sprites/heldItems.ts";
 import { drawPlayerSheet } from "./sprites/player.ts";
 import { drawStallSheet } from "./sprites/stalls.ts";
-import {
-  drawLantern,
-  drawShrine,
-  drawStairs,
-  drawTorii,
-  drawYagura,
-} from "./sprites/structures.ts";
+import { drawLantern, drawShrine, drawTorii, drawYagura } from "./sprites/structures.ts";
 import { drawGroundTile, drawPathTile } from "./sprites/tiles.ts";
 import {
   buildBgm,
@@ -48,7 +42,6 @@ write("held.png", drawHeldItemsSheet());
 write("torii.png", drawTorii());
 write("shrine.png", drawShrine());
 write("yagura.png", drawYagura());
-write("stairs.png", drawStairs());
 write("lantern.png", drawLantern());
 write("tile-path.png", drawPathTile());
 write("tile-ground.png", drawGroundTile());

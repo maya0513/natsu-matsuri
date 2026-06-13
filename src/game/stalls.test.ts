@@ -15,6 +15,18 @@ describe("STALLS 配置", () => {
       expect(s.pos.y).toBeLessThanOrEqual(MAP_BOUNDS.maxY);
     }
   });
+
+  it("屋台同士が重ならない（一定距離以上離れている）", () => {
+    const MIN_DIST = 2.5;
+    for (let i = 0; i < STALLS.length; i++) {
+      for (let j = i + 1; j < STALLS.length; j++) {
+        const a = STALLS[i];
+        const b = STALLS[j];
+        if (!a || !b) continue;
+        expect(Math.hypot(a.pos.x - b.pos.x, a.pos.y - b.pos.y)).toBeGreaterThanOrEqual(MIN_DIST);
+      }
+    }
+  });
 });
 
 describe("nearestStall", () => {

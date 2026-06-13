@@ -7,7 +7,6 @@ import {
   PATH_TILE_TEXTURE,
   PLAYER_SHEET,
   SHRINE_TEXTURE,
-  STAIRS_TEXTURE,
   STALL_SHEET,
   TORII_TEXTURE,
   YAGURA_TEXTURE,
@@ -20,7 +19,6 @@ export type GameTextures = {
   readonly torii: THREE.Texture;
   readonly shrine: THREE.Texture;
   readonly yagura: THREE.Texture;
-  readonly stairs: THREE.Texture;
   readonly lantern: THREE.Texture;
   readonly tilePath: THREE.Texture;
   readonly tileGround: THREE.Texture;
@@ -37,7 +35,7 @@ const load = (loader: THREE.TextureLoader, url: string): Promise<THREE.Texture> 
 
 export const loadGameTextures = async (): Promise<GameTextures> => {
   const loader = new THREE.TextureLoader();
-  const [player, stalls, held, torii, shrine, yagura, stairs, lantern, tilePath, tileGround] =
+  const [player, stalls, held, torii, shrine, yagura, lantern, tilePath, tileGround] =
     await Promise.all([
       load(loader, PLAYER_SHEET.url),
       load(loader, STALL_SHEET.url),
@@ -45,10 +43,9 @@ export const loadGameTextures = async (): Promise<GameTextures> => {
       load(loader, TORII_TEXTURE.url),
       load(loader, SHRINE_TEXTURE.url),
       load(loader, YAGURA_TEXTURE.url),
-      load(loader, STAIRS_TEXTURE.url),
       load(loader, LANTERN_TEXTURE.url),
       load(loader, PATH_TILE_TEXTURE.url),
       load(loader, GROUND_TILE_TEXTURE.url),
     ]);
-  return { player, stalls, held, torii, shrine, yagura, stairs, lantern, tilePath, tileGround };
+  return { player, stalls, held, torii, shrine, yagura, lantern, tilePath, tileGround };
 };
