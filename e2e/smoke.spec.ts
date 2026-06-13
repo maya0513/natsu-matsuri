@@ -21,14 +21,11 @@ test("起動して歩いて屋台を調べられる", async ({ page }) => {
   // 近接プロンプトが出て、E でダイアログが開く
   await expect(page.getByText("屋台へ")).toBeVisible({ timeout: 5000 });
   await page.keyboard.press("e");
-  await expect(page.getByRole("button", { name: /食べる/ }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: /買う/ }).first()).toBeVisible();
 
-  // 食べると（持ち物もお金もない。一瞬の演出のみ）ダイアログは自動で閉じる
-  await page
-    .getByRole("button", { name: /食べる/ })
-    .first()
-    .click();
-  await expect(page.getByRole("button", { name: /食べる/ }).first()).not.toBeVisible();
+  // 数字キー 1 で買う（キーボードだけで操作できる）とダイアログは閉じる
+  await page.keyboard.press("1");
+  await expect(page.getByRole("button", { name: /買う/ }).first()).not.toBeVisible();
 
   expect(errors).toEqual([]);
 });

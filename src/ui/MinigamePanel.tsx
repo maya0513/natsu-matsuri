@@ -79,7 +79,7 @@ export const MinigamePanel = ({ view, dispatch }: Props) => {
       {picking ? (
         <div class="space-y-2">
           <p class="text-sm text-slate-300">
-            {view.id === "kuji" ? "箱から 1 枚引く" : "好きな紐を 1 本引く"}
+            {view.id === "kuji" ? "箱から 1 枚引く" : "好きな紐を 1 本引く"}（数字キー）
           </p>
           <div class="flex flex-wrap justify-center gap-2">
             {Array.from({ length: view.count ?? 0 }, (_, i) => (
@@ -95,7 +95,7 @@ export const MinigamePanel = ({ view, dispatch }: Props) => {
                   )
                 }
               >
-                {view.id === "kuji" ? "？" : "丨"}
+                {i + 1}
               </button>
             ))}
           </div>
@@ -127,7 +127,7 @@ export const MinigamePanel = ({ view, dispatch }: Props) => {
                 class="rounded bg-rose-500 px-4 py-1.5 font-bold text-slate-950 hover:bg-rose-400"
                 onClick={() => dispatch({ kind: "retry-minigame" })}
               >
-                もう一回
+                もう一回（E）
               </button>
             ) : (
               <button
@@ -135,7 +135,7 @@ export const MinigamePanel = ({ view, dispatch }: Props) => {
                 class="rounded bg-rose-500 px-4 py-1.5 font-bold text-slate-950 hover:bg-rose-400"
                 onClick={() => dispatch({ kind: "draw-ball", rng: Math.random })}
               >
-                玉を引く
+                玉を引く（E）
               </button>
             )}
             {exitButton}

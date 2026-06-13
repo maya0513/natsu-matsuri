@@ -81,11 +81,15 @@ const loop = (now: number): void => {
   }
 
   const intent = input.poll();
+  // interact（決定）は 1 フレームに 1 回だけ効かせる（ラグで複数サブステップ走っても多重発火しない）
+  let firstStep = true;
   while (accumulator >= FIXED_DT) {
-    const result = update(state, intent, FIXED_DT, Math.random);
+    const stepIntent = firstStep ? intent : { ...intent, interact: false };
+    const result = update(state, stepIntent, FIXED_DT, Math.random);
     state = result.state;
     handleEvents(result.events);
     accumulator -= FIXED_DT;
+    firstStep = false;
   }
 
   view.render(state);
