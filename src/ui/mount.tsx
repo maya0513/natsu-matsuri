@@ -6,7 +6,7 @@ import { App } from "./App";
 export const mountUi = (
   root: HTMLElement,
   dispatch: (action: GameAction) => void,
-  toggleBgm: () => boolean,
+  toggleSound: () => boolean,
 ): void => {
-  render(<App dispatch={dispatch} toggleBgm={toggleBgm} />, root);
+  render(<App dispatch={dispatch} toggleSound={toggleSound} />, root);
 };

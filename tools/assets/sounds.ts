@@ -120,21 +120,37 @@ export const buildBgm = (): Float32Array => {
   return mix(fueTrack, subTrack, drums);
 };
 
+// SE は「静かで淡々とした夜祭り」に合わせ、音量控えめ・柔らかい音色（三角波/正弦）で作る。
+
 export const buildSeLaunch = (): Float32Array =>
-  mix(sweep("sine", 220, 880, 0.55, 0.22), decayNoise(0.3, 0.08, 31));
+  // 遠くで上がる、ごく控えめなヒュー
+  mix(sweep("sine", 300, 720, 0.5, 0.1), decayNoise(0.22, 0.025, 31));
 
 export const buildSeBurst = (): Float32Array =>
-  mix(decayNoise(0.8, 0.85, 41), tone("sine", 64, 0.35, 0.5, 0.002, 0.25));
+  // 遠くの花火の柔らかいドーン（低音 + ふわっとした余韻）
+  mix(
+    tone("sine", 70, 0.5, 0.22, 0.005, 0.42),
+    tone("sine", 112, 0.4, 0.1, 0.005, 0.36),
+    decayNoise(0.55, 0.1, 41),
+  );
 
 export const buildSeHit = (): Float32Array =>
+  // 柔らかな上昇チャイム
   concat(
-    tone("square", noteFreq("C5"), 0.08, 0.28),
-    tone("square", noteFreq("E5"), 0.08, 0.28),
-    tone("square", noteFreq("G5"), 0.14, 0.28),
+    tone("triangle", noteFreq("E5"), 0.1, 0.16, 0.01, 0.08),
+    tone("triangle", noteFreq("A5"), 0.18, 0.16, 0.01, 0.12),
   );
 
 export const buildSeMiss = (): Float32Array =>
-  concat(tone("square", noteFreq("E4"), 0.12, 0.22), tone("square", noteFreq("C4"), 0.2, 0.22));
+  // 静かな下降
+  concat(
+    tone("triangle", noteFreq("D4"), 0.12, 0.13, 0.01, 0.08),
+    tone("triangle", noteFreq("A3"), 0.2, 0.13, 0.01, 0.12),
+  );
 
 export const buildSeBuy = (): Float32Array =>
-  concat(tone("square", noteFreq("B5"), 0.06, 0.24), tone("square", noteFreq("E6"), 0.12, 0.24));
+  // 控えめな確認音
+  concat(
+    tone("triangle", noteFreq("A4"), 0.08, 0.15, 0.01, 0.06),
+    tone("triangle", noteFreq("D5"), 0.14, 0.15, 0.01, 0.1),
+  );
