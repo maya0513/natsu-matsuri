@@ -21,6 +21,9 @@ export const STALL_ORDER = [
   "crepe",
   "kakigori",
   "juice",
+  "senbiki",
+  "mogura",
+  "bingo",
 ] as const;
 
 type StallKind = (typeof STALL_ORDER)[number];
@@ -139,6 +142,33 @@ const drawIcon = (c: PixelCanvas, kind: StallKind, ox: number, oy: number): void
       fillRect(c, ox + 2, oy + 3, 5, 6, PAL.ramuneGlass);
       fillRect(c, ox + 3, oy + 4, 3, 4, PAL.candyApple);
       fillRect(c, ox + 6, oy, 1, 5, PAL.collar); // ストロー
+      break;
+    }
+    case "senbiki": {
+      // 上から垂れる無数の紐
+      fillRect(c, ox, oy + 1, 10, 1, PAL.woodLight);
+      for (let x = ox + 1; x < ox + 9; x += 2) fillRect(c, x, oy + 2, 1, 7, PAL.lanternGlow);
+      setPixel(c, ox + 3, oy + 8, PAL.candyApple); // 当たり紐
+      break;
+    }
+    case "mogura": {
+      // モグラとハンマー
+      fillRect(c, ox + 1, oy + 5, 5, 4, PAL.wood);
+      setPixel(c, ox + 2, oy + 6, PAL.eye);
+      setPixel(c, ox + 4, oy + 6, PAL.eye);
+      fillRect(c, ox + 6, oy + 1, 1, 5, PAL.woodLight); // 柄
+      fillRect(c, ox + 5, oy, 4, 2, PAL.candyApple); // 頭
+      break;
+    }
+    case "bingo": {
+      // ビンゴカード（3x3）
+      fillRect(c, ox + 1, oy + 1, 8, 8, PAL.awningWhite);
+      for (let i = 1; i < 3; i++) {
+        fillRect(c, ox + 1 + i * 3, oy + 1, 1, 8, PAL.roofDark);
+        fillRect(c, ox + 1, oy + 1 + i * 3, 8, 1, PAL.roofDark);
+      }
+      setPixel(c, ox + 3, oy + 3, PAL.candyApple); // 印
+      setPixel(c, ox + 6, oy + 6, PAL.candyApple);
       break;
     }
   }

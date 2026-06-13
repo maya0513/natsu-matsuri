@@ -35,6 +35,9 @@ export const STALL_SHEET = {
     "crepe",
     "kakigori",
     "juice",
+    "senbiki",
+    "mogura",
+    "bingo",
   ],
 } as const;
 
@@ -60,6 +63,9 @@ export const HELD_SHEET = {
     "crepe",
     "kakigori",
     "juice",
+    "senbiki-prize",
+    "mogura-prize",
+    "bingo-prize",
   ],
 } as const;
 

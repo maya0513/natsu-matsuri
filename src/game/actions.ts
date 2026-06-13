@@ -1,8 +1,8 @@
 // UI 層から届く操作を状態に適用する純粋関数
 import { isOnMenu } from "./items";
-import { initMinigame, pickLot, pressMinigame, prizeOf } from "./minigames";
+import { drawBall, initMinigame, pickLot, pressMinigame, prizeOf, pullString } from "./minigames";
 import { STALLS } from "./stalls";
-import type { GameEvent, GameState, ItemId, Rng } from "./types";
+import type { GameEvent, GameState, ItemId, MinigameId, Rng } from "./types";
 
 export type GameAction =
   | { readonly kind: "close-dialog" }
@@ -10,8 +10,22 @@ export type GameAction =
   | { readonly kind: "start-minigame" }
   | { readonly kind: "minigame-press" }
   | { readonly kind: "pick-lot"; readonly index: number; readonly rng: Rng }
+  | { readonly kind: "pull-string"; readonly index: number; readonly rng: Rng }
+  | { readonly kind: "draw-ball"; readonly rng: Rng }
   | { readonly kind: "retry-minigame" }
   | { readonly kind: "exit-minigame" };
+
+const MINIGAME_IDS: ReadonlySet<MinigameId> = new Set([
+  "kingyo",
+  "shateki",
+  "yoyo",
+  "kuji",
+  "senbiki",
+  "mogura",
+  "bingo",
+]);
+
+const isMinigameId = (id: string): id is MinigameId => MINIGAME_IDS.has(id as MinigameId);
 
 export type ActionResult = {
   readonly state: GameState;
@@ -55,14 +69,7 @@ export const applyAction = (state: GameState, action: GameAction): ActionResult 
       const stall = STALLS.find((s) => s.id === stallId);
       if (stall?.kind !== "minigame") return noEvents(state);
       // StallId のうちミニゲーム屋台は MinigameId と一致する
-      if (
-        stallId !== "kingyo" &&
-        stallId !== "shateki" &&
-        stallId !== "yoyo" &&
-        stallId !== "kuji"
-      ) {
-        return noEvents(state);
-      }
+      if (!isMinigameId(stallId)) return noEvents(state);
       return noEvents({ ...state, mode: { kind: "minigame", game: initMinigame(stallId) } });
     }
     case "minigame-press": {
@@ -77,6 +84,30 @@ export const applyAction = (state: GameState, action: GameAction): ActionResult 
       return {
         state: { ...state, mode: { kind: "minigame", game: picked } },
         events: [{ kind: good ? "minigame-hit" : "minigame-miss" }],
+      };
+    }
+    case "pull-string": {
+      // 千本引き: 紐を選んで引くと当たり/はずれが出る
+      if (state.mode.kind !== "minigame" || state.mode.game.id !== "senbiki") return noEvents(state);
+      const pulled = pullString(state.mode.game, action.index, action.rng);
+      if (pulled === state.mode.game) return noEvents(state);
+      const good = prizeOf(pulled) !== undefined;
+      return {
+        state: { ...state, mode: { kind: "minigame", game: pulled } },
+        events: [{ kind: good ? "minigame-hit" : "minigame-miss" }],
+      };
+    }
+    case "draw-ball": {
+      // ビンゴ: 玉を 1 つ引く
+      if (state.mode.kind !== "minigame" || state.mode.game.id !== "bingo") return noEvents(state);
+      const before = state.mode.game;
+      const drawn = drawBall(before, action.rng);
+      if (drawn === before) return noEvents(state);
+      // この引きで新たに印が付いたか
+      const newMark = drawn.marked.some((m, i) => m && !before.marked[i]);
+      return {
+        state: { ...state, mode: { kind: "minigame", game: drawn } },
+        events: [{ kind: newMark ? "minigame-hit" : "minigame-miss" }],
       };
     }
     case "retry-minigame": {

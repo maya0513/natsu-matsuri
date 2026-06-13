@@ -30,6 +30,10 @@ export const STALLS: readonly Stall[] = [
   { id: "yoyo", name: "ヨーヨー釣り", kind: "minigame", pos: { x: 5, y: 0 }, side: 1 },
   { id: "shateki", name: "射的", kind: "minigame", pos: { x: -5, y: -6 }, side: -1 },
   { id: "kuji", name: "くじ引き", kind: "minigame", pos: { x: 5, y: -6 }, side: 1 },
+  // 河川敷側のミニゲーム屋台
+  { id: "senbiki", name: "千本引き", kind: "minigame", pos: { x: -8, y: 8 }, side: -1 },
+  { id: "bingo", name: "ビンゴ", kind: "minigame", pos: { x: -8, y: 1 }, side: -1 },
+  { id: "mogura", name: "モグラたたき", kind: "minigame", pos: { x: -8, y: -6 }, side: -1 },
 ];
 
 const distSq = (a: Vec2, b: Vec2): number => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;

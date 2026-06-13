@@ -6,7 +6,7 @@ import { signal } from "@preact/signals";
 import { INTERACT_RADIUS } from "../game/constants";
 import { isFinished, prizeOf } from "../game/minigames";
 import { type Stall, nearestStall } from "../game/stalls";
-import type { Fortune, GameState, MinigameId, PrizeId, StallId } from "../game/types";
+import type { Fortune, GameState, MinigameId, PrizeId, SenbikiState, StallId } from "../game/types";
 
 /** 開いている売買/受付ダイアログの屋台 */
 export const dialogStallSig = signal<StallId | undefined>(undefined);
@@ -24,13 +24,20 @@ export type MinigameView = {
   readonly count?: number;
   readonly picked?: number;
   readonly result?: Fortune;
-  // ヨーヨー / 金魚
+  // ヨーヨー / 金魚 / モグラ
   readonly caught?: number;
   readonly triesLeft?: number;
   readonly poiLeft?: number;
-  // 射的
+  // 射的 / モグラ
   readonly shotsLeft?: number;
   readonly hits?: number;
+  // 千本引き
+  readonly senbikiResult?: SenbikiState["result"];
+  // ビンゴ
+  readonly card?: readonly number[];
+  readonly marked?: readonly boolean[];
+  readonly lastBall?: number;
+  readonly bingo?: boolean;
 };
 
 export const minigameSig = signal<MinigameView | undefined>(undefined);
@@ -72,6 +79,28 @@ const projectMinigame = (state: GameState): MinigameView | undefined => {
         shotsLeft: g.shotsLeft,
         hits: g.hits,
         ...(g.last !== undefined && { last: g.last }),
+      };
+    case "senbiki":
+      return {
+        ...base,
+        count: g.count,
+        ...(g.picked !== undefined && { picked: g.picked }),
+        ...(g.result !== undefined && { senbikiResult: g.result }),
+      };
+    case "mogura":
+      return {
+        ...base,
+        triesLeft: g.triesLeft,
+        hits: g.hits,
+        ...(g.last !== undefined && { last: g.last }),
+      };
+    case "bingo":
+      return {
+        ...base,
+        card: g.card,
+        marked: g.marked,
+        bingo: g.bingo,
+        ...(g.lastBall !== undefined && { lastBall: g.lastBall }),
       };
   }
 };

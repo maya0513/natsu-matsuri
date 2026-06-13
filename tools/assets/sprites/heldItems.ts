@@ -24,6 +24,9 @@ export const HELD_ORDER = [
   "crepe",
   "kakigori",
   "juice",
+  "senbiki-prize",
+  "mogura-prize",
+  "bingo-prize",
 ] as const;
 
 type Held = (typeof HELD_ORDER)[number];
@@ -231,6 +234,43 @@ const drawHeld = (held: Held): PixelCanvas => {
       fillRect(c, 2, 3, 5, 6, PAL.ramuneGlass);
       fillRect(c, 3, 4, 3, 4, PAL.candyApple);
       fillRect(c, 6, 0, 1, 5, PAL.collar); // ストロー
+      break;
+    }
+    case "senbiki-prize": {
+      // だるま
+      fillRect(c, 2, 2, 6, 7, PAL.vermillion);
+      fillRect(c, 2, 2, 1, 7, PAL.vermillionDark);
+      fillRect(c, 3, 3, 4, 3, PAL.collar); // 顔
+      setPixel(c, 4, 4, PAL.eye);
+      setPixel(c, 5, 4, PAL.eye);
+      round(c, [
+        [2, 2],
+        [7, 2],
+        [2, 8],
+        [7, 8],
+      ]);
+      break;
+    }
+    case "mogura-prize": {
+      // おもちゃのハンマー
+      fillRect(c, 2, 1, 6, 3, PAL.candyApple);
+      fillRect(c, 2, 1, 6, 1, PAL.candyAppleHi);
+      fillRect(c, 4, 4, 2, 6, PAL.woodLight); // 柄
+      break;
+    }
+    case "bingo-prize": {
+      // 金メダル
+      fillRect(c, 3, 0, 4, 2, PAL.awningWhite); // リボン
+      fillRect(c, 2, 3, 6, 6, PAL.obi);
+      fillRect(c, 3, 4, 4, 4, PAL.obiShade);
+      setPixel(c, 4, 5, PAL.lanternGlow);
+      setPixel(c, 5, 5, PAL.lanternGlow);
+      round(c, [
+        [2, 3],
+        [7, 3],
+        [2, 8],
+        [7, 8],
+      ]);
       break;
     }
   }

@@ -1,12 +1,23 @@
 import { describe, expect, it } from "vitest";
-import type { KingyoState, KujiState, ShatekiState, Target, YoyoState } from "../types";
+import type {
+  BingoState,
+  KingyoState,
+  KujiState,
+  MoguraState,
+  SenbikiState,
+  ShatekiState,
+  Target,
+  YoyoState,
+} from "../types";
 import {
+  drawBall,
   fortuneFromRng,
   initMinigame,
   isFinished,
   pickLot,
   pressMinigame,
   prizeOf,
+  pullString,
   stepMinigame,
 } from "./index";
 
@@ -177,5 +188,84 @@ describe("射的", () => {
     const stepped = stepMinigame(withTimer, 0.02) as ShatekiState;
     expect(stepped.targets[0]?.up).toBe(false); // 出没が切り替わる
     expect(stepped.aimX).toBeGreaterThan(0);
+  });
+});
+
+describe("千本引き", () => {
+  it("引くと当たり/はずれが確定し、当たりは景品を持ち帰る", () => {
+    const s = initMinigame("senbiki") as SenbikiState;
+    const win = pullString(s, 0, () => 0); // 大当たり
+    expect(win.result).toBe("大当たり");
+    expect(isFinished(win)).toBe(true);
+    expect(prizeOf(win)).toBe("senbiki-prize");
+    const lose = pullString(s, 1, () => 0.9); // はずれ
+    expect(lose.result).toBe("はずれ");
+    expect(prizeOf(lose)).toBeUndefined();
+  });
+
+  it("選択済みなら二度引けない", () => {
+    const picked = pullString(initMinigame("senbiki") as SenbikiState, 0, () => 0);
+    expect(pullString(picked, 1, () => 0.9)).toBe(picked);
+  });
+});
+
+describe("モグラたたき", () => {
+  const make = (hammerX: number, moles: MoguraState["moles"], triesLeft = 10): MoguraState => ({
+    id: "mogura",
+    hammerX,
+    dir: 1,
+    moles,
+    triesLeft,
+    hits: 0,
+  });
+
+  it("ハンマー直下の出ているモグラを叩ける", () => {
+    const r = pressMinigame(
+      make(0.38, [
+        { x: 0.15, up: false, timer: 1 },
+        { x: 0.38, up: true, timer: 1 },
+      ]),
+    );
+    const after = r.state as MoguraState;
+    expect(r.hit).toBe(true);
+    expect(after.hits).toBe(1);
+    expect(after.triesLeft).toBe(9);
+    expect(after.moles[1]?.up).toBe(false);
+  });
+
+  it("隠れているモグラは叩けない", () => {
+    const r = pressMinigame(make(0.38, [{ x: 0.38, up: false, timer: 1 }]));
+    expect(r.hit).toBe(false);
+  });
+
+  it("ハンマー切れで終了。2 匹以上で景品を持ち帰る", () => {
+    expect(isFinished(make(0.38, [{ x: 0.38, up: true, timer: 1 }], 0))).toBe(true);
+    expect(prizeOf({ ...make(0.38, []), hits: 2 })).toBe("mogura-prize");
+    expect(prizeOf({ ...make(0.38, []), hits: 1 })).toBeUndefined();
+  });
+
+  it("step でハンマーが動き、モグラが出没する", () => {
+    const s = make(0, [{ x: 0.38, up: true, timer: 0.01 }]);
+    const stepped = stepMinigame(s, 0.02) as MoguraState;
+    expect(stepped.moles[0]?.up).toBe(false);
+    expect(stepped.hammerX).toBeGreaterThan(0);
+  });
+});
+
+describe("ビンゴ", () => {
+  it("引いた玉がカードにあれば印が付く", () => {
+    const after = drawBall(initMinigame("bingo") as BingoState, () => 0); // 玉=1
+    expect(after.lastBall).toBe(1);
+    expect(after.marked[0]).toBe(true); // card[0]=1
+  });
+
+  it("1 列揃うとビンゴになり、景品を持ち帰る", () => {
+    let s = initMinigame("bingo") as BingoState;
+    s = drawBall(s, () => 0); // 1
+    s = drawBall(s, () => 0); // 2
+    s = drawBall(s, () => 0); // 3 → 上段 揃い
+    expect(s.bingo).toBe(true);
+    expect(isFinished(s)).toBe(true);
+    expect(prizeOf(s)).toBe("bingo-prize");
   });
 });

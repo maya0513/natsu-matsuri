@@ -24,7 +24,10 @@ export type StallId =
   | "kingyo"
   | "shateki"
   | "yoyo"
-  | "kuji";
+  | "kuji"
+  | "senbiki"
+  | "mogura"
+  | "bingo";
 
 /** 屋台で食べられる品物 */
 export type ItemId =
@@ -42,13 +45,27 @@ export type ItemId =
   | "juice";
 
 /** ミニゲームで勝ち取って持ち帰る景品 */
-export type PrizeId = "goldfish" | "yoyo-balloon" | "shateki-prize" | "omamori";
+export type PrizeId =
+  | "goldfish"
+  | "yoyo-balloon"
+  | "shateki-prize"
+  | "omamori"
+  | "senbiki-prize"
+  | "mogura-prize"
+  | "bingo-prize";
 
 /** 手に持って歩けるもの（食べ物 or 景品） */
 export type CarriedId = ItemId | PrizeId;
 
 /** ミニゲームの種類 */
-export type MinigameId = "kingyo" | "shateki" | "yoyo" | "kuji";
+export type MinigameId =
+  | "kingyo"
+  | "shateki"
+  | "yoyo"
+  | "kuji"
+  | "senbiki"
+  | "mogura"
+  | "bingo";
 
 /** おみくじの運勢（大吉〜大凶） */
 export type Fortune = "大吉" | "中吉" | "小吉" | "吉" | "末吉" | "凶" | "大凶";
@@ -115,7 +132,48 @@ export type ShatekiState = {
   readonly last?: "hit" | "miss";
 };
 
-export type MinigameState = KujiState | YoyoState | KingyoState | ShatekiState;
+/** 千本引き: 紐を 1 本選んで引くと景品の当たり/はずれが出る */
+export type SenbikiState = {
+  readonly id: "senbiki";
+  readonly count: number;
+  readonly picked?: number;
+  readonly result?: "大当たり" | "当たり" | "はずれ";
+};
+
+/** モグラたたき: 穴から出るモグラを、左右に動くハンマーで叩く */
+export type Mole = {
+  readonly x: number;
+  readonly up: boolean;
+  readonly timer: number;
+};
+export type MoguraState = {
+  readonly id: "mogura";
+  readonly hammerX: number;
+  readonly dir: 1 | -1;
+  readonly moles: readonly Mole[];
+  readonly triesLeft: number;
+  readonly hits: number;
+  readonly last?: "hit" | "miss";
+};
+
+/** ビンゴ: 3x3 のカード。引いた玉がカードにあれば印、1 列揃えばビンゴ */
+export type BingoState = {
+  readonly id: "bingo";
+  readonly card: readonly number[]; // 9 マス
+  readonly marked: readonly boolean[]; // 9 マス
+  readonly drawn: readonly number[];
+  readonly lastBall?: number;
+  readonly bingo: boolean;
+};
+
+export type MinigameState =
+  | KujiState
+  | YoyoState
+  | KingyoState
+  | ShatekiState
+  | SenbikiState
+  | MoguraState
+  | BingoState;
 
 /** ゲーム全体のモード（判別共用体） */
 export type Mode =

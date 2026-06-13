@@ -3,12 +3,15 @@
 // pickLot: くじ引き（おみくじ）の選択 / prizeOf: 退出時に持ち帰る景品
 import type {
   Balloon,
+  BingoState,
   Fortune,
   KujiState,
   MinigameId,
   MinigameState,
+  Mole,
   PrizeId,
   Rng,
+  SenbikiState,
   Target,
 } from "../types";
 
@@ -19,12 +22,38 @@ export const HIT_WINDOW = {
   shateki: 0.1,
 } as const;
 
-/** マーカー（フック / 金魚 / 照準）の速さ（往復/秒換算の係数） */
+/** マーカー（フック / 金魚 / 照準 / ハンマー）の速さ（往復/秒換算の係数） */
 const SPEED = {
   yoyo: 0.9,
   kingyo: 0.8,
   shateki: 1.0,
+  mogura: 1.15,
 } as const;
+
+/** モグラの穴の横位置 */
+export const MOGURA_HOLES = [0.15, 0.38, 0.62, 0.85] as const;
+/** モグラが出ている/隠れている秒数 */
+const MOGURA_UP = 0.75;
+const MOGURA_DOWN = 0.55;
+/** ハンマーの命中窓 */
+const MOGURA_WINDOW = 0.12;
+
+/** ビンゴ: カードの数字（1..9）と玉の最大値、3x3 の列 */
+const BINGO_BALLS = 12;
+const BINGO_LINES: readonly (readonly [number, number, number])[] = [
+  [0, 1, 2],
+  [3, 4, 5],
+  [6, 7, 8],
+  [0, 3, 6],
+  [1, 4, 7],
+  [2, 5, 8],
+  [0, 4, 8],
+  [2, 4, 6],
+];
+
+/** 千本引きの当たり判定 */
+const senbikiResult = (r: number): SenbikiState["result"] =>
+  r < 0.08 ? "大当たり" : r < 0.5 ? "当たり" : "はずれ";
 
 /** 水風船・的の横位置 */
 export const YOYO_POS = [0.2, 0.5, 0.8] as const;
@@ -92,6 +121,29 @@ export const initMinigame = (id: MinigameId): MinigameState => {
         })),
         hits: 0,
       };
+    case "senbiki":
+      return { id: "senbiki", count: 10 };
+    case "mogura":
+      return {
+        id: "mogura",
+        hammerX: 0,
+        dir: 1,
+        moles: MOGURA_HOLES.map((x, i) => ({
+          x,
+          up: i % 2 === 0,
+          timer: MOGURA_UP * (0.4 + 0.3 * i),
+        })),
+        triesLeft: 10,
+        hits: 0,
+      };
+    case "bingo":
+      return {
+        id: "bingo",
+        card: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+        marked: Array.from({ length: 9 }, () => false),
+        drawn: [],
+        bingo: false,
+      };
   }
 };
 
@@ -126,6 +178,17 @@ const stepTarget = (target: Target, dt: number): Target => {
   return { ...target, up, timer };
 };
 
+/** モグラの出没（叩かれても時間で再び出る）を 1 ステップ進める */
+const stepMole = (mole: Mole, dt: number): Mole => {
+  let timer = mole.timer - dt;
+  let up = mole.up;
+  if (timer <= 0) {
+    up = !up;
+    timer += up ? MOGURA_UP : MOGURA_DOWN;
+  }
+  return { ...mole, up, timer };
+};
+
 export const stepMinigame = (state: MinigameState, dt: number): MinigameState => {
   switch (state.id) {
     case "kuji":
@@ -147,6 +210,14 @@ export const stepMinigame = (state: MinigameState, dt: number): MinigameState =>
       const p = pingPong(state.aimX, state.dir, SPEED.shateki, dt);
       return { ...state, aimX: p.t, dir: p.dir, targets: state.targets.map((t) => stepTarget(t, dt)) };
     }
+    case "mogura": {
+      if (state.triesLeft === 0) return state;
+      const p = pingPong(state.hammerX, state.dir, SPEED.mogura, dt);
+      return { ...state, hammerX: p.t, dir: p.dir, moles: state.moles.map((m) => stepMole(m, dt)) };
+    }
+    case "senbiki":
+    case "bingo":
+      return state;
   }
 };
 
@@ -234,6 +305,34 @@ export const pressMinigame = (state: MinigameState): MinigamePress => {
         hit,
       };
     }
+    case "mogura": {
+      if (state.triesLeft === 0) return { state, hit: false };
+      const idx = nearestIndex(
+        state.hammerX,
+        MOGURA_WINDOW,
+        state.moles,
+        (i) => state.moles[i]?.up ?? false,
+      );
+      const hit = idx >= 0;
+      // 叩いたモグラは引っ込む（時間でまた出てくる）
+      const moles = state.moles.map((m, i) =>
+        i === idx ? { ...m, up: false, timer: MOGURA_DOWN } : m,
+      ) as readonly Mole[];
+      return {
+        state: {
+          ...state,
+          moles,
+          triesLeft: state.triesLeft - 1,
+          hits: state.hits + (hit ? 1 : 0),
+          last: hit ? "hit" : "miss",
+        },
+        hit,
+      };
+    }
+    case "senbiki":
+    case "bingo":
+      // 千本引きは選択（pullString）、ビンゴは玉引き（drawBall）で操作する
+      return { state, hit: false };
   }
 };
 
@@ -241,6 +340,24 @@ export const pressMinigame = (state: MinigameState): MinigamePress => {
 export const pickLot = (state: KujiState, index: number, rng: Rng): KujiState => {
   if (state.picked !== undefined) return state;
   return { ...state, picked: index, result: fortuneFromRng(rng()) };
+};
+
+/** 千本引き: index の紐を引いて当たり/はずれを確定する（選択済みなら何もしない） */
+export const pullString = (state: SenbikiState, index: number, rng: Rng): SenbikiState => {
+  if (state.picked !== undefined) return state;
+  return { ...state, picked: index, result: senbikiResult(rng()) };
+};
+
+/** ビンゴ: 玉を 1 つ引いてカードに印を付ける。揃えば bingo になる */
+export const drawBall = (state: BingoState, rng: Rng): BingoState => {
+  if (state.bingo) return state;
+  const remaining: number[] = [];
+  for (let n = 1; n <= BINGO_BALLS; n++) if (!state.drawn.includes(n)) remaining.push(n);
+  if (remaining.length === 0) return state;
+  const ball = remaining[Math.floor(rng() * remaining.length)] ?? remaining[0] ?? 0;
+  const marked = state.card.map((n, i) => state.marked[i] || n === ball);
+  const bingo = BINGO_LINES.some((line) => line.every((i) => marked[i]));
+  return { ...state, drawn: [...state.drawn, ball], marked, bingo, lastBall: ball };
 };
 
 /** これ以上操作できない（結果画面を出すべき）状態か */
@@ -254,6 +371,12 @@ export const isFinished = (state: MinigameState): boolean => {
       return state.poiLeft === 0;
     case "shateki":
       return state.shotsLeft === 0 || state.targets.every((t) => !t.alive);
+    case "senbiki":
+      return state.picked !== undefined;
+    case "mogura":
+      return state.triesLeft === 0;
+    case "bingo":
+      return state.bingo || state.drawn.length >= 9;
   }
 };
 
@@ -268,5 +391,11 @@ export const prizeOf = (state: MinigameState): PrizeId | undefined => {
       return state.caught >= 1 ? "goldfish" : undefined;
     case "shateki":
       return state.hits >= 1 ? "shateki-prize" : undefined;
+    case "senbiki":
+      return state.result && state.result !== "はずれ" ? "senbiki-prize" : undefined;
+    case "mogura":
+      return state.hits >= 2 ? "mogura-prize" : undefined;
+    case "bingo":
+      return state.bingo ? "bingo-prize" : undefined;
   }
 };

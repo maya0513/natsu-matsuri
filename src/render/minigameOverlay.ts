@@ -1,7 +1,7 @@
 // ミニゲームの「動く部分」を描く 2D canvas オーバーレイ。
 // 毎フレーム変わる連続値（マーカー位置）は signal を通さず、ここが直接描く。
 import { HIT_WINDOW } from "../game/minigames";
-import type { GameState, KingyoState, ShatekiState, YoyoState } from "../game/types";
+import type { GameState, KingyoState, MoguraState, ShatekiState, YoyoState } from "../game/types";
 
 /** 作画解像度（CSS で 4 倍に拡大表示） */
 const W = 96;
@@ -107,6 +107,34 @@ const drawShateki = (ctx: CanvasRenderingContext2D, g: ShatekiState): void => {
   ctx.stroke();
 };
 
+const drawMogura = (ctx: CanvasRenderingContext2D, g: MoguraState): void => {
+  // 地面
+  ctx.fillStyle = "#241b3d";
+  ctx.fillRect(4, 18, W - 8, 18);
+  g.moles.forEach((m) => {
+    const x = cx(m.x);
+    // 穴
+    ctx.fillStyle = "#0d0a1a";
+    ctx.fillRect(x - 6, 26, 12, 6);
+    if (m.up) {
+      // モグラ（顔を出している）
+      ctx.fillStyle = "#6b4a2f";
+      ctx.fillRect(x - 5, 18, 10, 10);
+      ctx.fillStyle = "#8a6038";
+      ctx.fillRect(x - 3, 20, 6, 4); // 鼻面
+      ctx.fillStyle = "#1a1226";
+      ctx.fillRect(x - 3, 21, 1, 1); // 目
+      ctx.fillRect(x + 2, 21, 1, 1);
+    }
+  });
+  // ハンマー（左右にスイープ）
+  const hx = cx(g.hammerX);
+  ctx.fillStyle = "#8a6038";
+  ctx.fillRect(hx - 1, 6, 2, 10); // 柄
+  ctx.fillStyle = "#c4452e";
+  ctx.fillRect(hx - 4, 2, 8, 5); // 頭
+};
+
 export const createMinigameOverlay = (container: HTMLElement): MinigameOverlay => {
   const canvas = document.createElement("canvas");
   canvas.width = W;
@@ -128,8 +156,9 @@ export const createMinigameOverlay = (container: HTMLElement): MinigameOverlay =
 
   return {
     draw: (state) => {
-      // くじ引きは DOM の選択 UI なのでオーバーレイなし
-      const visible = state.mode.kind === "minigame" && state.mode.game.id !== "kuji";
+      // くじ引き・千本引き・ビンゴは DOM の UI なのでオーバーレイなし
+      const id = state.mode.kind === "minigame" ? state.mode.game.id : undefined;
+      const visible = id === "yoyo" || id === "kingyo" || id === "shateki" || id === "mogura";
       canvas.style.display = visible ? "block" : "none";
       if (!visible || !ctx || state.mode.kind !== "minigame") return;
 
@@ -138,6 +167,7 @@ export const createMinigameOverlay = (container: HTMLElement): MinigameOverlay =
       if (g.id === "yoyo") drawYoyo(ctx, g);
       else if (g.id === "kingyo") drawKingyo(ctx, g);
       else if (g.id === "shateki") drawShateki(ctx, g);
+      else if (g.id === "mogura") drawMogura(ctx, g);
     },
     dispose: () => {
       canvas.remove();
