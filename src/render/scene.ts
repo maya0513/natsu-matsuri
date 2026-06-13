@@ -123,7 +123,8 @@ const addRiver = (scene: THREE.Scene): void => {
 /** 参道（蛇行）。折れ線の各セグメントにタイルを敷く */
 const addPaths = (scene: THREE.Scene, tex: GameTextures): void => {
   for (const [[ax, az], [bx, bz]] of SEGMENTS) {
-    const x0 = Math.min(ax, bx) - PATH_WIDTH / 2;
+    // 台地の縁(plateauX)より左へは出さない（石段の上に道が張り出すのを防ぐ）
+    const x0 = Math.max(Math.min(ax, bx) - PATH_WIDTH / 2, WORLD.plateauX);
     const x1 = Math.max(ax, bx) + PATH_WIDTH / 2;
     const z0 = Math.min(az, bz) - PATH_WIDTH / 2;
     const z1 = Math.max(az, bz) + PATH_WIDTH / 2;
