@@ -7,14 +7,14 @@ export type GameAudio = {
   readonly start: () => void;
   readonly play: (se: SeName) => void;
   /**
-   * すべての音（BGM + SE）のオン/オフを切り替える。既定はオフ。
-   * オフのときは花火・屋台の効果音も鳴らない。@returns 切替後にオンか
+   * 効果音（花火・屋台）のオン/オフを切り替える。既定はオフ。
+   * 常時ループする BGM は鳴らさない方針。@returns 切替後にオンか
    */
   readonly toggleSound: () => boolean;
 };
 
 export const createAudio = (): GameAudio => {
-  const bgm = new Howl({ src: [AUDIO.bgm], loop: true, volume: 0.4 });
+  // BGM（祭囃子）は常時ループで耳に付くため再生しない。SE のみ扱う。
   // 静かで淡々とした世界観に合わせ、SE は控えめな音量に
   const ses: Record<SeName, Howl> = {
     launch: new Howl({ src: [AUDIO.launch], volume: 0.4 }),
@@ -37,9 +37,6 @@ export const createAudio = (): GameAudio => {
     },
     toggleSound: () => {
       soundOn = !soundOn;
-      // オンにしたら BGM を再生、オフにしたら止める。SE は play 側で soundOn を見る
-      if (soundOn) bgm.play();
-      else bgm.pause();
       return soundOn;
     },
   };
