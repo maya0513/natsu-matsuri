@@ -76,24 +76,24 @@ describe("update（固定タイムステップ統合）", () => {
   it("minigame モードではマーカーが時間で進む", () => {
     const s: GameState = {
       ...initialGameState,
-      mode: { kind: "minigame", game: { id: "yoyo", t: 0, dir: 1 } },
+      mode: { kind: "minigame", game: { id: "kingyo", fishX: 0, dir: 1, poiLeft: 3, caught: 0 } },
     };
     const { state } = run(s, idle, 0.1);
     expect(state.mode.kind).toBe("minigame");
-    if (state.mode.kind === "minigame" && state.mode.game.id === "yoyo") {
-      expect(state.mode.game.t).toBeGreaterThan(0);
+    if (state.mode.kind === "minigame" && state.mode.game.id === "kingyo") {
+      expect(state.mode.game.fishX).toBeGreaterThan(0);
     }
   });
 
   it("minigame モードで interact すると press 扱いになり hit イベントが出る", () => {
     const s: GameState = {
       ...initialGameState,
-      mode: { kind: "minigame", game: { id: "yoyo", t: 0.5, dir: 1 } },
+      mode: { kind: "minigame", game: { id: "kingyo", fishX: 0.5, dir: 1, poiLeft: 3, caught: 0 } },
     };
     const { state, events } = run(s, { move: { x: 0, y: 0 }, interact: true }, 1 / 60);
     expect(events).toEqual([{ kind: "minigame-hit" }]);
-    if (state.mode.kind === "minigame" && state.mode.game.id === "yoyo") {
-      expect(state.mode.game.last).toBe("hit");
+    if (state.mode.kind === "minigame" && state.mode.game.id === "kingyo") {
+      expect(state.mode.game.caught).toBe(1);
     }
   });
 

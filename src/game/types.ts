@@ -15,22 +15,47 @@ export type StallId = "takoyaki" | "ringoame" | "kingyo" | "shateki" | "yoyo" | 
 /** 屋台で食べられる品物 */
 export type ItemId = "takoyaki" | "ramune" | "ringoame" | "wataame";
 
+/** ミニゲームで勝ち取って持ち帰る景品 */
+export type PrizeId = "goldfish" | "yoyo-balloon" | "shateki-prize" | "omamori";
+
+/** 手に持って歩けるもの（食べ物 or 景品） */
+export type CarriedId = ItemId | PrizeId;
+
 /** ミニゲームの種類 */
 export type MinigameId = "kingyo" | "shateki" | "yoyo" | "kuji";
 
+/** おみくじの運勢（大吉〜大凶） */
+export type Fortune = "大吉" | "中吉" | "小吉" | "吉" | "末吉" | "凶" | "大凶";
+
 // --- ミニゲーム状態（すべて純粋に更新される） ---
 
-/** くじ引き: ボタンで引くだけ。引けば必ず当たる。last は直前の結果表示用 */
+/** くじ引き（おみくじ）: 箱から伏せ札を 1 枚選ぶと運勢が出る */
 export type KujiState = {
   readonly id: "kuji";
-  readonly last?: "hit";
+  /** 箱に並ぶ伏せ札の枚数 */
+  readonly count: number;
+  /** 選んだ札の番号（未選択は undefined） */
+  readonly picked?: number;
+  /** 出た運勢 */
+  readonly result?: Fortune;
 };
 
-/** ヨーヨー釣り: 0..1 を往復するマーカーを中央で止める */
+/** ヨーヨー釣り: 上下に揺れる水風船を、左右に流れるフックで掬う */
+export type Balloon = {
+  readonly x: number;
+  /** 上下揺れの位相 */
+  readonly phase: number;
+  readonly alive: boolean;
+};
 export type YoyoState = {
   readonly id: "yoyo";
-  readonly t: number;
+  /** フックの位置 0..1 */
+  readonly hookX: number;
   readonly dir: 1 | -1;
+  readonly balloons: readonly Balloon[];
+  /** こよりの残り強度（掬える残り回数） */
+  readonly triesLeft: number;
+  readonly caught: number;
   readonly last?: "hit" | "miss";
 };
 
@@ -44,14 +69,23 @@ export type KingyoState = {
   readonly last?: "hit" | "miss";
 };
 
-/** 射的: 流れる照準で 3 つの的を狙う。弾は 3 発 */
+/** 射的: 流れる照準で、出没（ポップアップ）する的を狙う */
+export type Target = {
+  readonly x: number;
+  /** いま立っている（撃てる）か */
+  readonly up: boolean;
+  /** 次の出没切り替えまでの残り秒 */
+  readonly timer: number;
+  /** まだ倒されていないか */
+  readonly alive: boolean;
+};
 export type ShatekiState = {
   readonly id: "shateki";
   readonly aimX: number;
   readonly dir: 1 | -1;
   readonly shotsLeft: number;
-  /** 的が立っているか（3 つ） */
-  readonly targets: readonly [boolean, boolean, boolean];
+  readonly targets: readonly Target[];
+  readonly hits: number;
   readonly last?: "hit" | "miss";
 };
 
@@ -79,8 +113,8 @@ export type GameState = {
   /** ゲーム経過秒 */
   readonly time: number;
   readonly player: Player;
-  /** いま手に持って歩いている食べ物（屋台で食べた直近の品。次に食べると差し替わる） */
-  readonly heldItem?: ItemId;
+  /** いま手に持って歩いているもの（食べ物 or 景品。直近に手にした 1 つで上書きされる） */
+  readonly heldItem?: CarriedId;
   readonly mode: Mode;
   readonly fireworks: FireworksState;
 };

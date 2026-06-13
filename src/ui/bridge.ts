@@ -4,9 +4,9 @@
 // render 層の canvas オーバーレイが直接描画する。
 import { signal } from "@preact/signals";
 import { INTERACT_RADIUS } from "../game/constants";
-import { isFinished } from "../game/minigames";
+import { isFinished, prizeOf } from "../game/minigames";
 import { type Stall, nearestStall } from "../game/stalls";
-import type { GameState, MinigameId, StallId } from "../game/types";
+import type { Fortune, GameState, MinigameId, PrizeId, StallId } from "../game/types";
 
 /** 開いている売買/受付ダイアログの屋台 */
 export const dialogStallSig = signal<StallId | undefined>(undefined);
@@ -17,11 +17,20 @@ export const nearbyStallSig = signal<Stall | undefined>(undefined);
 export type MinigameView = {
   readonly id: MinigameId;
   readonly last?: "hit" | "miss";
-  readonly poiLeft?: number;
+  readonly finished: boolean;
+  /** 退出時に持ち帰る景品（勝っていれば） */
+  readonly prize?: PrizeId;
+  // くじ引き（おみくじ）
+  readonly count?: number;
+  readonly picked?: number;
+  readonly result?: Fortune;
+  // ヨーヨー / 金魚
   readonly caught?: number;
+  readonly triesLeft?: number;
+  readonly poiLeft?: number;
+  // 射的
   readonly shotsLeft?: number;
   readonly hits?: number;
-  readonly finished: boolean;
 };
 
 export const minigameSig = signal<MinigameView | undefined>(undefined);
@@ -29,12 +38,27 @@ export const minigameSig = signal<MinigameView | undefined>(undefined);
 const projectMinigame = (state: GameState): MinigameView | undefined => {
   if (state.mode.kind !== "minigame") return undefined;
   const g = state.mode.game;
-  const base = { id: g.id, finished: isFinished(g) } as const;
+  const prize = prizeOf(g);
+  const base = {
+    id: g.id,
+    finished: isFinished(g),
+    ...(prize !== undefined && { prize }),
+  } as const;
   switch (g.id) {
     case "kuji":
-      return { ...base, ...(g.last !== undefined && { last: g.last }) };
+      return {
+        ...base,
+        count: g.count,
+        ...(g.picked !== undefined && { picked: g.picked }),
+        ...(g.result !== undefined && { result: g.result }),
+      };
     case "yoyo":
-      return { ...base, ...(g.last !== undefined && { last: g.last }) };
+      return {
+        ...base,
+        triesLeft: g.triesLeft,
+        caught: g.caught,
+        ...(g.last !== undefined && { last: g.last }),
+      };
     case "kingyo":
       return {
         ...base,
@@ -46,7 +70,7 @@ const projectMinigame = (state: GameState): MinigameView | undefined => {
       return {
         ...base,
         shotsLeft: g.shotsLeft,
-        hits: g.targets.filter((t) => !t).length,
+        hits: g.hits,
         ...(g.last !== undefined && { last: g.last }),
       };
   }

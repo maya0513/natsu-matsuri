@@ -1,7 +1,7 @@
 // スプライト（板ポリ）の生成と GameState からの同期
 import * as THREE from "three";
-import { FOOD_SHEET, PLAYER_SHEET, PX_PER_UNIT } from "../assets/meta";
-import type { Direction, ItemId, Player } from "../game/types";
+import { HELD_SHEET, PLAYER_SHEET, PX_PER_UNIT } from "../assets/meta";
+import type { CarriedId, Direction, Player } from "../game/types";
 
 /** ピクセル寸法 → ワールド unit */
 export const toUnits = (px: number): number => px / PX_PER_UNIT;
@@ -49,17 +49,17 @@ export const createPlayerSprite = (sheet: THREE.Texture): PlayerSprite => {
 
 export type HeldItemSprite = {
   readonly mesh: THREE.Mesh;
-  /** 手に持つ食べ物を反映。item が無ければ非表示 */
-  readonly sync: (player: Player, item: ItemId | undefined, time: number) => void;
+  /** 手に持つもの（食べ物 or 景品）を反映。item が無ければ非表示 */
+  readonly sync: (player: Player, item: CarriedId | undefined, time: number) => void;
 };
 
-/** 浴衣キャラが手に持って歩く食べ物（プレイヤーの手元に追従する小さな板ポリ） */
+/** 浴衣キャラが手に持って歩くもの（プレイヤーの手元に追従する小さな板ポリ） */
 export const createHeldItemSprite = (sheet: THREE.Texture): HeldItemSprite => {
-  const w = toUnits(FOOD_SHEET.frameW);
-  const h = toUnits(FOOD_SHEET.frameH);
+  const w = toUnits(HELD_SHEET.frameW);
+  const h = toUnits(HELD_SHEET.frameH);
 
   const tex = sheet.clone();
-  tex.repeat.set(1 / FOOD_SHEET.order.length, 1);
+  tex.repeat.set(1 / HELD_SHEET.order.length, 1);
 
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), spriteMaterial(tex));
   mesh.visible = false;
@@ -71,13 +71,13 @@ export const createHeldItemSprite = (sheet: THREE.Texture): HeldItemSprite => {
   return {
     mesh,
     sync: (player, item, time) => {
-      const idx = item ? FOOD_SHEET.order.indexOf(item) : -1;
+      const idx = item ? HELD_SHEET.order.indexOf(item) : -1;
       if (idx < 0) {
         mesh.visible = false;
         return;
       }
       mesh.visible = true;
-      tex.offset.set(idx / FOOD_SHEET.order.length, 0);
+      tex.offset.set(idx / HELD_SHEET.order.length, 0);
       // 歩行中はわずかに上下して躍動感を出す
       const bob = player.moving ? Math.sin(time * 8 * Math.PI) * 0.03 : 0;
       mesh.position.set(player.pos.x + handX[player.facing], h / 2 + 0.18 + bob, player.pos.y + 0.2);

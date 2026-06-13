@@ -73,24 +73,21 @@ describe("applyAction: ミニゲーム", () => {
     expect(apply(before, { kind: "start-minigame" })).toBe(before);
   });
 
-  it("minigame-press で当たると hit イベントが出る", () => {
-    const inKuji: GameState = {
+  it("金魚を中央で押すと当たり、hit イベントが出る", () => {
+    const inKingyo: GameState = {
       ...initialGameState,
-      mode: { kind: "minigame", game: { id: "kuji" } },
+      mode: { kind: "minigame", game: { id: "kingyo", fishX: 0.5, dir: 1, poiLeft: 3, caught: 0 } },
     };
-    const r = applyAction(inKuji, { kind: "minigame-press" });
+    const r = applyAction(inKingyo, { kind: "minigame-press" });
     expect(r.events).toEqual([{ kind: "minigame-hit" }]);
-    if (r.state.mode.kind === "minigame" && r.state.mode.game.id === "kuji") {
-      expect(r.state.mode.game.last).toBe("hit");
-    }
   });
 
   it("外したら miss イベント", () => {
-    const inYoyo: GameState = {
+    const inKingyo: GameState = {
       ...initialGameState,
-      mode: { kind: "minigame", game: { id: "yoyo", t: 0.05, dir: 1 } },
+      mode: { kind: "minigame", game: { id: "kingyo", fishX: 0.05, dir: 1, poiLeft: 3, caught: 0 } },
     };
-    const r = applyAction(inYoyo, { kind: "minigame-press" });
+    const r = applyAction(inKingyo, { kind: "minigame-press" });
     expect(r.events).toEqual([{ kind: "minigame-miss" }]);
   });
 
@@ -107,13 +104,36 @@ describe("applyAction: ミニゲーム", () => {
     expect(r.events).toEqual([]);
   });
 
-  it("exit-minigame で walk に戻る", () => {
+  it("pick-lot で運勢が出る。吉系は hit イベント", () => {
     const inKuji: GameState = {
       ...initialGameState,
-      mode: { kind: "minigame", game: { id: "kuji" } },
+      mode: { kind: "minigame", game: { id: "kuji", count: 7 } },
     };
-    const s = apply(inKuji, { kind: "exit-minigame" });
+    const r = applyAction(inKuji, { kind: "pick-lot", index: 0, rng: () => 0 });
+    expect(r.events).toEqual([{ kind: "minigame-hit" }]);
+    if (r.state.mode.kind === "minigame" && r.state.mode.game.id === "kuji") {
+      expect(r.state.mode.game.result).toBe("大吉");
+    }
+  });
+
+  it("exit-minigame で walk に戻り、勝っていれば景品を手に持つ", () => {
+    const wonKingyo: GameState = {
+      ...initialGameState,
+      mode: { kind: "minigame", game: { id: "kingyo", fishX: 0.5, dir: 1, poiLeft: 0, caught: 2 } },
+    };
+    const s = apply(wonKingyo, { kind: "exit-minigame" });
     expect(s.mode).toEqual({ kind: "walk" });
+    expect(s.heldItem).toBe("goldfish");
+  });
+
+  it("負けた退出では手持ちは変わらない", () => {
+    const lostKingyo: GameState = {
+      ...initialGameState,
+      heldItem: "takoyaki",
+      mode: { kind: "minigame", game: { id: "kingyo", fishX: 0.5, dir: 1, poiLeft: 0, caught: 0 } },
+    };
+    const s = apply(lostKingyo, { kind: "exit-minigame" });
+    expect(s.heldItem).toBe("takoyaki");
   });
 
   it("retry-minigame で同じゲームが最初から", () => {

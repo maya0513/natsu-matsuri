@@ -23,12 +23,21 @@ export const STALL_SHEET = {
   order: ["takoyaki", "ringoame", "kingyo", "shateki", "yoyo", "kuji"],
 } as const;
 
-/** 手持ち食べ物シート。order は ItemId（食べ物）と一致 */
-export const FOOD_SHEET = {
-  url: "/assets/food.png",
+/** 手持ち品シート（食べ物＋景品）。order は CarriedId と一致 */
+export const HELD_SHEET = {
+  url: "/assets/held.png",
   frameW: 20,
   frameH: 20,
-  order: ["takoyaki", "ramune", "ringoame", "wataame"],
+  order: [
+    "takoyaki",
+    "ramune",
+    "ringoame",
+    "wataame",
+    "goldfish",
+    "yoyo-balloon",
+    "shateki-prize",
+    "omamori",
+  ],
 } as const;
 
 export const TORII_TEXTURE = { url: "/assets/torii.png", w: 160, h: 160 } as const;

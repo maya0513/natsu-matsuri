@@ -35,7 +35,7 @@ export const createGameView = async (
   const camera = createCamera(window.innerWidth / window.innerHeight);
   const player = createPlayerSprite(textures.player);
   scene.add(player.mesh);
-  const heldItem = createHeldItemSprite(textures.food);
+  const heldItem = createHeldItemSprite(textures.held);
   scene.add(heldItem.mesh);
   const overlay = createMinigameOverlay(container);
   const fireworks = createFireworksRenderer(scene, options.onFireworkBurst);

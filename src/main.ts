@@ -90,6 +90,10 @@ const loop = (now: number): void => {
 
   view.render(state);
   publish(state);
+  // dev ビルド限定の E2E 補助（プレイヤー位置の読み出し）。本番ビルドでは除去される
+  if (import.meta.env.DEV) {
+    (window as unknown as { __pos?: typeof state.player.pos }).__pos = state.player.pos;
+  }
   requestAnimationFrame(loop);
 };
 

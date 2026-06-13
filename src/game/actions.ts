@@ -1,14 +1,15 @@
 // UI 層から届く操作を状態に適用する純粋関数
 import { isOnMenu } from "./items";
-import { initMinigame, pressMinigame } from "./minigames";
+import { initMinigame, pickLot, pressMinigame, prizeOf } from "./minigames";
 import { STALLS } from "./stalls";
-import type { GameEvent, GameState, ItemId } from "./types";
+import type { GameEvent, GameState, ItemId, Rng } from "./types";
 
 export type GameAction =
   | { readonly kind: "close-dialog" }
   | { readonly kind: "eat"; readonly item: ItemId }
   | { readonly kind: "start-minigame" }
   | { readonly kind: "minigame-press" }
+  | { readonly kind: "pick-lot"; readonly index: number; readonly rng: Rng }
   | { readonly kind: "retry-minigame" }
   | { readonly kind: "exit-minigame" };
 
@@ -67,6 +68,17 @@ export const applyAction = (state: GameState, action: GameAction): ActionResult 
     case "minigame-press": {
       return applyPress(state);
     }
+    case "pick-lot": {
+      // くじ引き（おみくじ）: 伏せ札を選ぶと運勢が確定する
+      if (state.mode.kind !== "minigame" || state.mode.game.id !== "kuji") return noEvents(state);
+      const picked = pickLot(state.mode.game, action.index, action.rng);
+      if (picked === state.mode.game) return noEvents(state); // 選択済みなど
+      const good = prizeOf(picked) !== undefined;
+      return {
+        state: { ...state, mode: { kind: "minigame", game: picked } },
+        events: [{ kind: good ? "minigame-hit" : "minigame-miss" }],
+      };
+    }
     case "retry-minigame": {
       if (state.mode.kind !== "minigame") return noEvents(state);
       return noEvents({
@@ -75,8 +87,11 @@ export const applyAction = (state: GameState, action: GameAction): ActionResult 
       });
     }
     case "exit-minigame": {
+      // 退出して walk に戻る。勝っていれば景品を手に持って歩く
       if (state.mode.kind !== "minigame") return noEvents(state);
-      return noEvents({ ...state, mode: { kind: "walk" } });
+      const prize = prizeOf(state.mode.game);
+      const walk: GameState = { ...state, mode: { kind: "walk" } };
+      return noEvents(prize ? { ...walk, heldItem: prize } : walk);
     }
   }
 };
