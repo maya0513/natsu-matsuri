@@ -7,8 +7,8 @@ test("起動して歩いて屋台に話しかけられる", async ({ page }) => 
 
   await page.goto("/");
 
-  // three.js の canvas が出る
-  await expect(page.locator("#game canvas")).toBeVisible();
+  // three.js の canvas が出る（2 つ目はミニゲームオーバーレイなので先頭を見る）
+  await expect(page.locator("#game canvas").first()).toBeVisible();
 
   // HUD: もちもの画面の開閉
   await page.getByRole("button", { name: "もちもの" }).click();

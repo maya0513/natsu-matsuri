@@ -38,6 +38,10 @@ export const createGameView = async (
   const overlay = createMinigameOverlay(container);
   const fireworks = createFireworksRenderer(scene, options.onFireworkBurst);
 
+  // プレイヤー追従の淡い暖色ライト（提灯に照らされて夜道を歩く存在感）
+  const playerLight = new THREE.PointLight("#ffcf8a", 7, 7, 1.6);
+  scene.add(playerLight);
+
   const onResize = () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
@@ -49,6 +53,7 @@ export const createGameView = async (
     render: (state) => {
       player.sync(state.player, state.time);
       followPlayer(camera, state.player.pos);
+      playerLight.position.set(state.player.pos.x, 1.6, state.player.pos.y);
       fireworks.update(state.time);
       renderer.render(scene, camera);
       overlay.draw(state);
