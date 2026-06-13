@@ -23,8 +23,9 @@ const audio = createAudio();
 const view = await createGameView(container, {
   onFireworkBurst: () => audio.play("burst"),
 });
+// タッチ操作系は preact 管理外の専用オーバーレイ（body 直下）に置く
 const input = isTouchDevice()
-  ? combineInputs(createKeyboardInput(), createTouchInput(uiRoot))
+  ? combineInputs(createKeyboardInput(), createTouchInput())
   : createKeyboardInput();
 
 // autoplay 制限: 最初のユーザー操作で BGM を開始

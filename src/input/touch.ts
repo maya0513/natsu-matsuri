@@ -1,6 +1,11 @@
 // タッチ入力: 仮想スティック（左下）+ アクションボタン（右下）。
-// タッチデバイス（pointer: coarse）でのみ表示される
+// タッチデバイス（pointer: coarse）でのみ表示される。
+// 重要: 操作系は preact が管理する #ui とは別の専用オーバーレイに置く。
+// 同じコンテナに手動 DOM を混ぜると、preact の render が既存要素を
+// excessDomChildren として取り込み／除去してしまい、操作系が消える。
+import { effect } from "@preact/signals";
 import type { Intent, Vec2 } from "../game/types";
+import { dialogStallSig, minigameSig } from "../ui/bridge";
 import type { InputSource } from "./keyboard";
 
 const STICK_SIZE = 112;
@@ -10,9 +15,18 @@ const RADIUS = (STICK_SIZE - KNOB_SIZE) / 2;
 export const isTouchDevice = (): boolean =>
   window.matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
 
-export const createTouchInput = (container: HTMLElement): InputSource => {
+export const createTouchInput = (parent: HTMLElement = document.body): InputSource => {
   let move: Vec2 = { x: 0, y: 0 };
   let interactQueued = false;
+
+  // preact 管理外の専用オーバーレイ（全面・イベント透過、子だけ受け取る）
+  const overlay = document.createElement("div");
+  overlay.style.cssText = [
+    "position: fixed",
+    "inset: 0",
+    "pointer-events: none",
+    "z-index: 20",
+  ].join(";");
 
   // --- 仮想スティック ---
   const base = document.createElement("div");
@@ -26,6 +40,7 @@ export const createTouchInput = (container: HTMLElement): InputSource => {
     "background: rgba(15, 23, 42, 0.55)",
     "border: 2px solid rgba(148, 163, 184, 0.4)",
     "touch-action: none",
+    "pointer-events: auto",
   ].join(";");
 
   const knob = document.createElement("div");
@@ -79,7 +94,7 @@ export const createTouchInput = (container: HTMLElement): InputSource => {
   base.addEventListener("pointerup", onPointerEnd);
   base.addEventListener("pointercancel", onPointerEnd);
 
-  // --- アクションボタン ---
+  // --- アクションボタン（話しかける／ミニゲームの操作）---
   const button = document.createElement("button");
   button.type = "button";
   button.textContent = "🏮";
@@ -94,6 +109,7 @@ export const createTouchInput = (container: HTMLElement): InputSource => {
     "border: 2px solid rgba(251, 191, 36, 0.5)",
     "font-size: 28px",
     "touch-action: manipulation",
+    "pointer-events: auto",
   ].join(";");
   const onAction = (e: Event): void => {
     e.preventDefault();
@@ -101,8 +117,16 @@ export const createTouchInput = (container: HTMLElement): InputSource => {
   };
   button.addEventListener("pointerdown", onAction);
 
-  container.appendChild(base);
-  container.appendChild(button);
+  overlay.appendChild(base);
+  overlay.appendChild(button);
+  parent.appendChild(overlay);
+
+  // ダイアログ／ミニゲーム表示中はスティックを隠す（中央ダイアログとの重なり回避）。
+  // bridge の signal が変化したときだけ走るので毎フレームの負荷はない。
+  const stopEffect = effect(() => {
+    const blocked = dialogStallSig.value !== undefined || minigameSig.value !== undefined;
+    base.style.display = blocked ? "none" : "block";
+  });
 
   return {
     poll: (): Intent => {
@@ -111,8 +135,8 @@ export const createTouchInput = (container: HTMLElement): InputSource => {
       return { move, interact };
     },
     dispose: () => {
-      base.remove();
-      button.remove();
+      stopEffect();
+      overlay.remove();
     },
   };
 };
