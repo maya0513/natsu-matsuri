@@ -1,4 +1,5 @@
-// ミニゲームの操作 UI（離散情報のみ。動くマーカーは render 層のオーバーレイが描く）
+// ミニゲームの操作 UI（離散情報のみ。動くシーンは render 層のオーバーレイが描く）。
+// 操作は全ゲーム共通: ←→ で狙い、決定で commit。ここは枠・残数・結果・ボタンだけを持つ。
 import type { GameAction } from "../game/actions";
 import { STALLS } from "../game/stalls";
 import type { MinigameId, PrizeId } from "../game/types";
@@ -9,14 +10,26 @@ type Props = {
   readonly dispatch: (action: GameAction) => void;
 };
 
-const PRESS_LABEL: Record<MinigameId, string> = {
+/** 「決定」ボタンの文言（ゲームごとの動作名） */
+const COMMIT_LABEL: Record<MinigameId, string> = {
   kuji: "引く",
   senbiki: "引く",
   yoyo: "すくう",
-  kingyo: "ポイですくう",
+  kingyo: "すくう",
   shateki: "撃つ",
   mogura: "たたく",
-  bingo: "引く",
+  bingo: "玉を引く",
+};
+
+/** 操作ヒント（狙う系か選ぶ系か） */
+const HINT: Record<MinigameId, string> = {
+  kuji: "← → で札を選ぶ",
+  senbiki: "← → で紐を選ぶ",
+  yoyo: "← → でこよりを動かす",
+  kingyo: "← → でポイを動かす",
+  shateki: "← → で狙う",
+  mogura: "← → でハンマーを動かす",
+  bingo: "Enter で玉を引く",
 };
 
 const PRIZE_NAME: Record<PrizeId, string> = {
@@ -50,113 +63,69 @@ export const MinigamePanel = ({ view, dispatch }: Props) => {
   const stall = STALLS.find((s) => s.id === view.id);
   const status = statusText(view);
   const result = resultText(view);
-  // くじ引き・千本引きは伏せ札/紐を選ばせる
-  const picking = (view.id === "kuji" || view.id === "senbiki") && !view.finished;
   const isBingo = view.id === "bingo";
 
-  const roseClass =
-    "rounded bg-rose-500 px-4 py-1.5 font-bold text-slate-950 hover:bg-rose-400 focus:outline-none focus:ring-2 focus:ring-white/90";
-  const cancelClass =
-    "rounded px-3 py-1.5 text-sm text-slate-400 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-white/70";
-
-  const exitButton = (
-    <button type="button" class={cancelClass} onClick={() => dispatch({ kind: "exit-minigame" })}>
-      やめる
-    </button>
-  );
+  // ShopDialog と揃えた淡々とした夜祭り調。発光や強い差し色は避ける。
+  const action =
+    "rounded border border-amber-100/20 bg-slate-900/70 px-4 py-2 text-sm text-slate-100 hover:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-amber-100/50";
+  const cancel =
+    "rounded px-4 py-2 text-sm text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 focus:outline-none focus:ring-1 focus:ring-slate-400/40";
 
   return (
     <div
       data-modal
-      class="absolute inset-x-0 bottom-6 mx-auto w-[min(26rem,90vw)] rounded-lg border-2 border-rose-400/60 bg-slate-950/90 p-4 text-center text-slate-100"
+      class="absolute inset-x-0 bottom-6 mx-auto w-[min(22rem,88vw)] rounded-md border border-white/10 bg-slate-950/85 p-4 text-center text-slate-100 shadow-lg shadow-black/40"
     >
-      <div class="mb-1 flex items-center justify-between">
-        <h2 class="text-lg font-bold text-rose-300">{stall?.name}</h2>
-        {status && <span class="text-sm text-slate-300">{status}</span>}
+      <div class="mb-2 flex items-center justify-between">
+        <h2 class="text-base font-medium tracking-wide text-slate-200">{stall?.name}</h2>
+        {status && <span class="text-xs text-slate-400">{status}</span>}
       </div>
 
-      {result && <p class="mb-2 text-xl font-bold text-amber-300">{result}</p>}
+      {result && <p class="mb-2 text-lg font-medium text-amber-200/90">{result}</p>}
       {view.finished && view.prize && (
-        <p class="mb-2 text-sm text-emerald-300">{PRIZE_NAME[view.prize]}を持って帰る</p>
+        <p class="mb-2 text-xs text-emerald-300/80">{PRIZE_NAME[view.prize]}を持って帰る</p>
       )}
 
-      {picking ? (
-        <div class="space-y-2">
-          <p class="text-sm text-slate-300">
-            {view.id === "kuji" ? "箱から 1 枚引く" : "好きな紐を 1 本引く"}
-          </p>
-          <div class="flex flex-wrap justify-center gap-2">
-            {Array.from({ length: view.count ?? 0 }, (_, i) => (
-              <button
-                key={i}
-                type="button"
-                class="h-10 w-8 rounded bg-amber-500/80 font-bold text-slate-950 hover:bg-amber-400 focus:outline-none focus:ring-2 focus:ring-white/90"
-                onClick={() =>
-                  dispatch(
-                    view.id === "kuji"
-                      ? { kind: "pick-lot", index: i, rng: Math.random }
-                      : { kind: "pull-string", index: i, rng: Math.random },
-                  )
-                }
-              >
-                {i + 1}
-              </button>
-            ))}
-          </div>
-          <div>{exitButton}</div>
-        </div>
-      ) : isBingo ? (
-        <div class="space-y-2">
-          <div class="mx-auto grid w-fit grid-cols-3 gap-1">
-            {(view.card ?? []).map((n, i) => (
-              <span
-                key={i}
-                class={`flex h-8 w-8 items-center justify-center rounded text-sm font-bold ${
-                  view.marked?.[i]
-                    ? "bg-amber-400 text-slate-950"
-                    : "bg-slate-800 text-slate-300"
-                }`}
-              >
-                {n}
-              </span>
-            ))}
-          </div>
-          {view.lastBall !== undefined && !view.bingo && (
-            <p class="text-sm text-slate-300">出た玉：{view.lastBall}</p>
-          )}
-          <div class="flex items-center justify-center gap-3">
-            {view.finished ? (
-              <button type="button" class={roseClass} onClick={() => dispatch({ kind: "retry-minigame" })}>
-                もう一回
-              </button>
-            ) : (
-              <button
-                type="button"
-                class={roseClass}
-                onClick={() => dispatch({ kind: "draw-ball", rng: Math.random })}
-              >
-                玉を引く
-              </button>
-            )}
-            {exitButton}
-          </div>
-        </div>
-      ) : (
-        <div class="flex items-center justify-center gap-3">
-          {view.finished ? (
-            <button type="button" class={roseClass} onClick={() => dispatch({ kind: "retry-minigame" })}>
-              もう一回
-            </button>
-          ) : (
-            <button type="button" class={roseClass} onClick={() => dispatch({ kind: "minigame-press" })}>
-              {PRESS_LABEL[view.id]}
-            </button>
-          )}
-          {exitButton}
+      {/* ビンゴはカードを DOM で表示（マス目の印） */}
+      {isBingo && (
+        <div class="mb-3 mx-auto grid w-fit grid-cols-3 gap-1">
+          {(view.card ?? []).map((n, i) => (
+            <span
+              key={i}
+              class={`flex h-7 w-7 items-center justify-center rounded text-sm ${
+                view.marked?.[i]
+                  ? "bg-amber-200/80 text-slate-950"
+                  : "bg-slate-800/80 text-slate-400"
+              }`}
+            >
+              {n}
+            </span>
+          ))}
         </div>
       )}
 
-      <p class="mt-3 text-xs text-slate-500">← → で選んで Enter で決定 ／ Esc でやめる</p>
+      <div class="flex items-center justify-center gap-2">
+        {view.finished ? (
+          <button type="button" class={action} onClick={() => dispatch({ kind: "retry-minigame" })}>
+            もう一回
+          </button>
+        ) : (
+          <button
+            type="button"
+            class={action}
+            onClick={() => dispatch({ kind: "minigame-commit", rng: Math.random })}
+          >
+            {COMMIT_LABEL[view.id]}
+          </button>
+        )}
+        <button type="button" class={cancel} onClick={() => dispatch({ kind: "exit-minigame" })}>
+          やめる
+        </button>
+      </div>
+
+      <p class="mt-3 text-xs text-slate-500">
+        {view.finished ? "Enter でもう一回 ／ Esc でやめる" : `${HINT[view.id]} ／ Enter で決定`}
+      </p>
     </div>
   );
 };

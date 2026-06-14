@@ -5,7 +5,7 @@ import { createCamera, followPlayer } from "./camera";
 import { createCrowd } from "./crowd";
 import { createFireflies } from "./fireflies";
 import { createFireworksRenderer } from "./fireworks";
-import { createMinigameOverlay } from "./minigameOverlay";
+import { createMinigameInterior } from "./minigameStage";
 import { createRiverLanterns } from "./river";
 import { createScene } from "./scene";
 import { createSpirits } from "./spirits";
@@ -26,6 +26,10 @@ export type GameViewOptions = {
   readonly onFireworkBurst?: () => void;
 };
 
+/** 屋台に入る/出る暗転フェードの所要秒 */
+const FADE_DUR = 0.45;
+type Phase = "world" | "toGame" | "game" | "toWorld";
+
 export const createGameView = async (
   container: HTMLElement,
   options: GameViewOptions = {},
@@ -35,6 +39,8 @@ export const createGameView = async (
   const renderer = new THREE.WebGLRenderer({ antialias: false });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
+  // 世界と内部空間を手動で切り替えて描くので自動クリアは切る（毎フレーム先頭で clear）
+  renderer.autoClear = false;
   container.appendChild(renderer.domElement);
 
   const scene = createScene(textures);
@@ -43,7 +49,8 @@ export const createGameView = async (
   scene.add(player.mesh);
   const heldItem = createHeldItemSprite(textures.held);
   scene.add(heldItem.mesh);
-  const overlay = createMinigameOverlay(container);
+  const interior = createMinigameInterior(textures);
+  interior.setAspect(window.innerWidth / window.innerHeight);
   const fireworks = createFireworksRenderer(scene, options.onFireworkBurst);
   const crowd = createCrowd(scene, textures);
   const riverLanterns = createRiverLanterns(scene);
@@ -55,12 +62,28 @@ export const createGameView = async (
   const playerLight = new THREE.PointLight("#ffcf8a", 7, 7, 1.6);
   scene.add(playerLight);
 
+  // 屋台への出入りを表す暗幕（夜色）。opacity を毎フレーム設定する
+  const fade = document.createElement("div");
+  fade.style.cssText = [
+    "position: absolute",
+    "inset: 0",
+    "background: #05030f",
+    "opacity: 0",
+    "pointer-events: none",
+  ].join(";");
+  container.appendChild(fade);
+
   const onResize = () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
+    interior.setAspect(window.innerWidth / window.innerHeight);
     renderer.setSize(window.innerWidth, window.innerHeight);
   };
   window.addEventListener("resize", onResize);
+
+  // 暗転フェードの状態機械
+  let phase: Phase = "world";
+  let phaseStart = 0;
 
   return {
     render: (state) => {
@@ -78,15 +101,41 @@ export const createGameView = async (
       stallSmoke.update(state.time);
       fireflies.update(state.time);
       fireworks.update(state.time);
-      renderer.render(scene, camera);
-      overlay.draw(state);
+      interior.update(state);
+
+      // フェード遷移: 世界 ⇄ 屋台内部
+      const inMinigame = state.mode.kind === "minigame";
+      if (phase === "world" && inMinigame) {
+        phase = "toGame";
+        phaseStart = state.time;
+      } else if (phase === "game" && !inMinigame) {
+        phase = "toWorld";
+        phaseStart = state.time;
+      }
+      const p = Math.min((state.time - phaseStart) / FADE_DUR, 1);
+      if (phase === "toGame" && p >= 1) phase = "game";
+      else if (phase === "toWorld" && p >= 1) phase = "world";
+
+      // 前半は元シーン、後半は遷移先シーンを描く（暗転のピークで切替）
+      const showInterior =
+        phase === "game" ||
+        (phase === "toGame" && p >= 0.5) ||
+        (phase === "toWorld" && p < 0.5);
+      const opacity =
+        phase === "toGame" || phase === "toWorld" ? 1 - Math.abs(1 - 2 * p) : 0;
+      fade.style.opacity = String(opacity);
+
+      renderer.clear();
+      if (showInterior) interior.render(renderer);
+      else renderer.render(scene, camera);
     },
     spawnFirework: (seed, time) => {
       fireworks.spawn(seed, time);
     },
     dispose: () => {
       window.removeEventListener("resize", onResize);
-      overlay.dispose();
+      interior.dispose();
+      fade.remove();
       renderer.dispose();
       renderer.domElement.remove();
     },

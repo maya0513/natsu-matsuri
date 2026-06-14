@@ -36,21 +36,32 @@ export const App = ({ dispatch, toggleSound }: Props) => {
     return () => window.removeEventListener("keydown", onKey);
   }, [dispatch]);
 
-  // 上下左右キーでモーダル内の選択肢（ボタン）を移動し、Enter/Space で決定する
+  // 決定キー（Enter/Space/E）とモーダル内の選択肢移動（←→）。
+  // ミニゲーム中は ←→ をカーソル操作（移動入力）に譲り、フォーカス移動はしない。
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const btns = modalButtons();
       if (btns.length === 0) return;
 
-      // 決定: フォーカス中のボタンを明示的に押す（ネイティブ既定動作の二重発火は preventDefault で防ぐ）
-      if (e.key === "Enter" || e.key === " " || e.code === "Space") {
+      // 決定: フォーカス中のモーダルボタンを押す。フォーカスが外れていても
+      // ミニゲーム進行中なら commit を直接 dispatch する（連打で すくう/撃つ 等）。
+      if (e.key === "Enter" || e.key === " " || e.code === "Space" || e.code === "KeyE") {
         const el = document.activeElement;
         if (el instanceof HTMLButtonElement && el.closest("[data-modal]")) {
           e.preventDefault();
           el.click();
+          return;
+        }
+        const mg = minigameSig.peek();
+        if (mg && !mg.finished) {
+          e.preventDefault();
+          dispatch({ kind: "minigame-commit", rng: Math.random });
         }
         return;
       }
+
+      // ミニゲーム中は矢印で照準/カーソルを動かす（ゲームロジックが移動入力を消費）
+      if (minigameSig.peek()) return;
 
       const dir =
         e.key === "ArrowRight" || e.key === "ArrowDown"
@@ -66,29 +77,18 @@ export const App = ({ dispatch, toggleSound }: Props) => {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [dispatch]);
 
-  // 数字キーで品物・くじ札を直接選ぶ（ショートカット）
+  // 数字キーで売買屋台の品物を直接選ぶ（ショートカット）
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.repeat) return;
       const n = Number(e.key);
       if (!Number.isInteger(n) || n < 1) return;
-      const idx = n - 1;
       const dlg = dialogStallSig.peek();
-      if (dlg) {
-        const item = SHOP_MENU[dlg]?.[idx];
-        if (item) dispatch({ kind: "eat", item });
-        return;
-      }
-      const mg = minigameSig.peek();
-      if (mg && !mg.finished && (mg.id === "kuji" || mg.id === "senbiki") && idx < (mg.count ?? 0)) {
-        dispatch(
-          mg.id === "kuji"
-            ? { kind: "pick-lot", index: idx, rng: Math.random }
-            : { kind: "pull-string", index: idx, rng: Math.random },
-        );
-      }
+      if (!dlg) return;
+      const item = SHOP_MENU[dlg]?.[n - 1];
+      if (item) dispatch({ kind: "eat", item });
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

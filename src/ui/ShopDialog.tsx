@@ -14,62 +14,41 @@ export const ShopDialog = ({ stallId, dispatch }: Props) => {
   if (!stall) return null;
   const menu = SHOP_MENU[stallId];
 
-  const single = menu?.length === 1;
-  const buyClass =
-    "rounded bg-amber-500 px-4 py-1.5 font-bold text-slate-950 hover:bg-amber-400 focus:outline-none focus:ring-2 focus:ring-white/90";
-  const cancelClass =
-    "rounded px-3 py-1.5 text-sm text-slate-400 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-white/70";
+  // 夜祭りの静けさに合わせた淡々とした配色。発光や強い差し色は避け、暗い半透明の地に細い縁取り。
+  const action =
+    "w-full rounded border border-amber-100/20 bg-slate-900/70 px-4 py-2 text-slate-100 hover:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-amber-100/50";
+  const cancel =
+    "w-full rounded px-4 py-2 text-sm text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 focus:outline-none focus:ring-1 focus:ring-slate-400/40";
 
   return (
     <div
       data-modal
-      class="absolute inset-x-0 bottom-6 mx-auto w-[min(28rem,90vw)] rounded-lg border-2 border-amber-400/60 bg-slate-950/90 p-4 text-center text-slate-100 shadow-[0_0_24px_rgba(255,157,60,0.25)]"
+      class="absolute inset-x-0 bottom-6 mx-auto w-[min(20rem,86vw)] rounded-md border border-white/10 bg-slate-950/85 p-4 text-center text-slate-100 shadow-lg shadow-black/40"
     >
-      <h2 class="mb-2 text-lg font-bold text-amber-300">{stall.name}</h2>
+      <h2 class="mb-3 text-base font-medium tracking-wide text-slate-200">{stall.name}</h2>
 
-      {menu ? (
-        <>
-          <ul class="mb-3 space-y-1">
-            {menu.map((item, i) => (
-              <li key={item}>
-                {!single && <span class="mr-1 text-slate-400">{i + 1}.</span>}
-                {ITEM_INFO[item].emoji} {ITEM_INFO[item].name}
-              </li>
-            ))}
-          </ul>
-          {/* 買う / やめる を横並び（ミニゲーム屋台と同じ並び） */}
-          <div class="flex flex-wrap items-center justify-center gap-3">
-            {menu.map((item) => (
-              <button
-                key={item}
-                type="button"
-                class={buyClass}
-                onClick={() => dispatch({ kind: "eat", item })}
-              >
-                {single ? "買う" : `${ITEM_INFO[item].name}を買う`}
-              </button>
-            ))}
-            <button type="button" class={cancelClass} onClick={() => dispatch({ kind: "close-dialog" })}>
-              やめる
+      {/* 品目とボタンを分けず、「◯◯を買う／あそぶ」と「やめる」を縦に並べる（スマホでも崩れない） */}
+      <div class="flex flex-col gap-2">
+        {menu ? (
+          menu.map((item) => (
+            <button
+              key={item}
+              type="button"
+              class={action}
+              onClick={() => dispatch({ kind: "eat", item })}
+            >
+              {ITEM_INFO[item].name}を買う
             </button>
-          </div>
-        </>
-      ) : (
-        <div class="flex items-center justify-center gap-3">
-          <button
-            type="button"
-            class="rounded bg-rose-500 px-4 py-1.5 font-bold text-slate-950 hover:bg-rose-400 focus:outline-none focus:ring-2 focus:ring-white/90"
-            onClick={() => dispatch({ kind: "start-minigame" })}
-          >
+          ))
+        ) : (
+          <button type="button" class={action} onClick={() => dispatch({ kind: "start-minigame" })}>
             あそぶ
           </button>
-          <button type="button" class={cancelClass} onClick={() => dispatch({ kind: "close-dialog" })}>
-            やめる
-          </button>
-        </div>
-      )}
-
-      <p class="mt-3 text-xs text-slate-500">← → で選んで Enter で決定 ／ Esc でやめる</p>
+        )}
+        <button type="button" class={cancel} onClick={() => dispatch({ kind: "close-dialog" })}>
+          やめる
+        </button>
+      </div>
     </div>
   );
 };

@@ -35,14 +35,21 @@ export type ItemId =
   | "ramune"
   | "ringoame"
   | "wataame"
-  | "yakisoba"
+  | "yakisoba" // ソース焼きそば
+  | "yakisoba_shio" // 塩焼きそば
   | "potato"
   | "frank"
   | "taiyaki"
   | "chocobanana"
-  | "crepe"
-  | "kakigori"
-  | "juice";
+  | "crepe" // チョコバナナクレープ
+  | "crepe_ichigo" // いちご生クリーム
+  | "crepe_tuna" // ツナマヨ
+  | "kakigori" // いちご
+  | "kakigori_blue" // ブルーハワイ
+  | "kakigori_melon" // メロン
+  | "juice" // オレンジ
+  | "juice_grape" // ぶどう
+  | "juice_cola"; // コーラ
 
 /** ミニゲームで勝ち取って持ち帰る景品 */
 export type PrizeId =
@@ -71,30 +78,36 @@ export type MinigameId =
 export type Fortune = "大吉" | "中吉" | "小吉" | "吉" | "末吉" | "凶" | "大凶";
 
 // --- ミニゲーム状態（すべて純粋に更新される） ---
+// 操作モデルは全ゲーム共通: プレイヤーが cursor(0..1) を左右に動かし、決定で commit する。
+// 自動往復（メトロノーム）は廃止。対象（泳ぐ金魚・揺れる風船・出るモグラ）は動くが、
+// 強制的なタイミング合わせはない。
 
-/** くじ引き（おみくじ）: 箱から伏せ札を 1 枚選ぶと運勢が出る */
+/** くじ引き（おみくじ）: 箱の伏せ札をカーソルで選び、引くと運勢が出る */
 export type KujiState = {
   readonly id: "kuji";
   /** 箱に並ぶ伏せ札の枚数 */
   readonly count: number;
-  /** 選んだ札の番号（未選択は undefined） */
+  /** 選択カーソル 0..1（最も近い札がハイライトされる） */
+  readonly cursor: number;
+  /** 引いた札の番号（未選択は undefined） */
   readonly picked?: number;
   /** 出た運勢 */
   readonly result?: Fortune;
 };
 
-/** ヨーヨー釣り: 上下に揺れる水風船を、左右に流れるフックで掬う */
+/** ヨーヨー釣り: 上下に揺れる水風船を、自分で動かすこよりで狙って掬う */
 export type Balloon = {
   readonly x: number;
+  /** 浮きの基準高さ 0..1（描画用） */
+  readonly baseY: number;
   /** 上下揺れの位相 */
   readonly phase: number;
   readonly alive: boolean;
 };
 export type YoyoState = {
   readonly id: "yoyo";
-  /** フックの位置 0..1 */
-  readonly hookX: number;
-  readonly dir: 1 | -1;
+  /** こよりの横位置 0..1 */
+  readonly cursor: number;
   readonly balloons: readonly Balloon[];
   /** こよりの残り強度（掬える残り回数） */
   readonly triesLeft: number;
@@ -102,45 +115,51 @@ export type YoyoState = {
   readonly last?: "hit" | "miss";
 };
 
-/** 金魚すくい: 泳ぐ金魚を狙う。ポイは 3 回で破れる */
+/** 金魚すくい: 泳ぐ金魚を、自分で動かすポイで狙って掬う。ポイは数回で破れる */
+export type Fish = {
+  readonly x: number;
+  /** 泳ぐ深さ 0..1（描画用） */
+  readonly y: number;
+  readonly dir: 1 | -1;
+  readonly speed: number;
+  readonly alive: boolean;
+};
 export type KingyoState = {
   readonly id: "kingyo";
-  readonly fishX: number;
-  readonly dir: 1 | -1;
+  /** ポイの横位置 0..1 */
+  readonly cursor: number;
+  readonly fish: readonly Fish[];
   readonly poiLeft: number;
   readonly caught: number;
   readonly last?: "hit" | "miss";
 };
 
-/** 射的: 流れる照準で、出没（ポップアップ）する的を狙う */
+/** 射的: 照準を自分で動かし、棚に並ぶ景品を撃ち落とす */
 export type Target = {
   readonly x: number;
-  /** いま立っている（撃てる）か */
-  readonly up: boolean;
-  /** 次の出没切り替えまでの残り秒 */
-  readonly timer: number;
   /** まだ倒されていないか */
   readonly alive: boolean;
 };
 export type ShatekiState = {
   readonly id: "shateki";
-  readonly aimX: number;
-  readonly dir: 1 | -1;
+  /** 照準の横位置 0..1 */
+  readonly cursor: number;
   readonly shotsLeft: number;
   readonly targets: readonly Target[];
   readonly hits: number;
   readonly last?: "hit" | "miss";
 };
 
-/** 千本引き: 紐を 1 本選んで引くと景品の当たり/はずれが出る */
+/** 千本引き: 紐をカーソルで選んで引くと景品の当たり/はずれが出る */
 export type SenbikiState = {
   readonly id: "senbiki";
   readonly count: number;
+  readonly cursor: number;
   readonly picked?: number;
   readonly result?: "大当たり" | "当たり" | "はずれ";
 };
 
-/** モグラたたき: 穴から出るモグラを、左右に動くハンマーで叩く */
+/** モグラたたき: 穴から出るモグラを、自分で動かすハンマーで叩く（反応ゲーム） */
 export type Mole = {
   readonly x: number;
   readonly up: boolean;
@@ -148,8 +167,8 @@ export type Mole = {
 };
 export type MoguraState = {
   readonly id: "mogura";
-  readonly hammerX: number;
-  readonly dir: 1 | -1;
+  /** ハンマーの横位置 0..1 */
+  readonly cursor: number;
   readonly moles: readonly Mole[];
   readonly triesLeft: number;
   readonly hits: number;

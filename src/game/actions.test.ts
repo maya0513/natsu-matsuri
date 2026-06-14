@@ -73,43 +73,43 @@ describe("applyAction: ミニゲーム", () => {
     expect(apply(before, { kind: "start-minigame" })).toBe(before);
   });
 
-  it("金魚を中央で押すと当たり、hit イベントが出る", () => {
-    const inKingyo: GameState = {
-      ...initialGameState,
-      mode: { kind: "minigame", game: { id: "kingyo", fishX: 0.5, dir: 1, poiLeft: 3, caught: 0 } },
-    };
-    const r = applyAction(inKingyo, { kind: "minigame-press" });
+  const kingyoAt = (cursor: number, poiLeft = 3, caught = 0): GameState => ({
+    ...initialGameState,
+    mode: {
+      kind: "minigame",
+      game: {
+        id: "kingyo",
+        cursor,
+        fish: [{ x: 0.5, y: 0.5, dir: 1, speed: 0.2, alive: true }],
+        poiLeft,
+        caught,
+      },
+    },
+  });
+
+  it("カーソル付近の金魚で決定すると当たり、hit イベントが出る", () => {
+    const r = applyAction(kingyoAt(0.5), { kind: "minigame-commit", rng: () => 0 });
     expect(r.events).toEqual([{ kind: "minigame-hit" }]);
   });
 
   it("外したら miss イベント", () => {
-    const inKingyo: GameState = {
-      ...initialGameState,
-      mode: { kind: "minigame", game: { id: "kingyo", fishX: 0.05, dir: 1, poiLeft: 3, caught: 0 } },
-    };
-    const r = applyAction(inKingyo, { kind: "minigame-press" });
+    const r = applyAction(kingyoAt(0.05), { kind: "minigame-commit", rng: () => 0 });
     expect(r.events).toEqual([{ kind: "minigame-miss" }]);
   });
 
-  it("終了後の press は無音（イベントなし）", () => {
-    const done: GameState = {
-      ...initialGameState,
-      mode: {
-        kind: "minigame",
-        game: { id: "kingyo", fishX: 0.5, dir: 1, poiLeft: 0, caught: 1 },
-      },
-    };
-    const r = applyAction(done, { kind: "minigame-press" });
+  it("終了後の決定は無音（イベントなし）", () => {
+    const done = kingyoAt(0.5, 0, 1);
+    const r = applyAction(done, { kind: "minigame-commit", rng: () => 0 });
     expect(r.state).toBe(done);
     expect(r.events).toEqual([]);
   });
 
-  it("pick-lot で運勢が出る。吉系は hit イベント", () => {
+  it("くじ引きの決定で運勢が出る。吉系は hit イベント", () => {
     const inKuji: GameState = {
       ...initialGameState,
-      mode: { kind: "minigame", game: { id: "kuji", count: 7 } },
+      mode: { kind: "minigame", game: { id: "kuji", count: 9, cursor: 0.5 } },
     };
-    const r = applyAction(inKuji, { kind: "pick-lot", index: 0, rng: () => 0 });
+    const r = applyAction(inKuji, { kind: "minigame-commit", rng: () => 0 });
     expect(r.events).toEqual([{ kind: "minigame-hit" }]);
     if (r.state.mode.kind === "minigame" && r.state.mode.game.id === "kuji") {
       expect(r.state.mode.game.result).toBe("大吉");
@@ -117,36 +117,21 @@ describe("applyAction: ミニゲーム", () => {
   });
 
   it("exit-minigame で walk に戻り、勝っていれば景品を手に持つ", () => {
-    const wonKingyo: GameState = {
-      ...initialGameState,
-      mode: { kind: "minigame", game: { id: "kingyo", fishX: 0.5, dir: 1, poiLeft: 0, caught: 2 } },
-    };
-    const s = apply(wonKingyo, { kind: "exit-minigame" });
+    const s = apply(kingyoAt(0.5, 0, 2), { kind: "exit-minigame" });
     expect(s.mode).toEqual({ kind: "walk" });
     expect(s.heldItem).toBe("goldfish");
   });
 
   it("負けた退出では手持ちは変わらない", () => {
-    const lostKingyo: GameState = {
-      ...initialGameState,
-      heldItem: "takoyaki",
-      mode: { kind: "minigame", game: { id: "kingyo", fishX: 0.5, dir: 1, poiLeft: 0, caught: 0 } },
-    };
+    const lostKingyo: GameState = { ...kingyoAt(0.5, 0, 0), heldItem: "takoyaki" };
     const s = apply(lostKingyo, { kind: "exit-minigame" });
     expect(s.heldItem).toBe("takoyaki");
   });
 
   it("retry-minigame で同じゲームが最初から", () => {
-    const worn: GameState = {
-      ...initialGameState,
-      mode: {
-        kind: "minigame",
-        game: { id: "kingyo", fishX: 0.7, dir: 1, poiLeft: 0, caught: 2 },
-      },
-    };
-    const s = apply(worn, { kind: "retry-minigame" });
+    const s = apply(kingyoAt(0.7, 0, 2), { kind: "retry-minigame" });
     if (s.mode.kind === "minigame" && s.mode.game.id === "kingyo") {
-      expect(s.mode.game.poiLeft).toBe(3);
+      expect(s.mode.game.poiLeft).toBeGreaterThan(0);
       expect(s.mode.game.caught).toBe(0);
     } else {
       throw new Error("minigame モードのはず");

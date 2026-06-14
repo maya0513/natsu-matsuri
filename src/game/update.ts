@@ -27,10 +27,11 @@ export const update = (state: GameState, intent: Intent, dt: number, rng: Rng): 
       if (stall) working = { ...working, mode: { kind: "dialog", stallId: stall.id } };
     }
   } else if (working.mode.kind === "minigame") {
-    // ミニゲーム中は時間経過でマーカーだけが動く（押す等の操作は UI から dispatch）
+    // ミニゲーム中は ←→ でカーソルを動かし、対象（金魚・風船・モグラ）が時間で動く。
+    // 「決定」操作は UI から dispatch される。
     working = {
       ...working,
-      mode: { kind: "minigame", game: stepMinigame(working.mode.game, dt) },
+      mode: { kind: "minigame", game: stepMinigame(working.mode.game, dt, intent.move.x) },
     };
   }
 

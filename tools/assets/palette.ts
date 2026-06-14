@@ -97,4 +97,6 @@ export const PAL = {
   ramuneCap: 0x4a8fb5ff,
   wataamePink: 0xf2a0c8ff,
   wataameLight: 0xfbd0e6ff,
+  meronGreen: 0x6cc24aff, // かき氷メロンシロップ
+  noodlePale: 0xd8c48aff, // 塩焼きそばの麺（ソース無しの淡色）
 } as const;

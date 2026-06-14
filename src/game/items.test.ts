@@ -9,6 +9,11 @@ describe("stallHasHotFood（煙がふさわしい屋台の判定）", () => {
     }
   });
 
+  it("ソース／塩どちらの焼きそばも加熱品", () => {
+    expect(ITEM_INFO.yakisoba.hot).toBe(true);
+    expect(ITEM_INFO.yakisoba_shio.hot).toBe(true);
+  });
+
   it("冷たい/非加熱の品（甘味・氷・飲み物）の屋台は煙を出さない", () => {
     for (const id of ["ringoame", "chocobanana", "crepe", "kakigori", "juice"] as const) {
       expect(stallHasHotFood(id)).toBe(false);
@@ -23,6 +28,8 @@ describe("stallHasHotFood（煙がふさわしい屋台の判定）", () => {
 
   it("hot フラグが立つのは加熱調理品だけ", () => {
     const hot = (Object.keys(ITEM_INFO) as ItemId[]).filter((id) => ITEM_INFO[id].hot);
-    expect(new Set(hot)).toEqual(new Set(["takoyaki", "yakisoba", "potato", "frank", "taiyaki"]));
+    expect(new Set(hot)).toEqual(
+      new Set(["takoyaki", "yakisoba", "yakisoba_shio", "potato", "frank", "taiyaki"]),
+    );
   });
 });

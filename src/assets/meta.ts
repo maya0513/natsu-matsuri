@@ -79,6 +79,13 @@ export const HELD_SHEET = {
     "senbiki-prize",
     "mogura-prize",
     "bingo-prize",
+    "yakisoba_shio",
+    "crepe_ichigo",
+    "crepe_tuna",
+    "kakigori_blue",
+    "kakigori_melon",
+    "juice_grape",
+    "juice_cola",
   ],
 } as const;
 

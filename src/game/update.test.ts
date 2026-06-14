@@ -78,22 +78,34 @@ describe("update（固定タイムステップ統合）", () => {
     }
   });
 
-  it("minigame モードではマーカーが時間で進む", () => {
+  it("minigame モードでは ←→ 入力でカーソルが動く", () => {
     const s: GameState = {
       ...initialGameState,
-      mode: { kind: "minigame", game: { id: "kingyo", fishX: 0, dir: 1, poiLeft: 3, caught: 0 } },
+      mode: {
+        kind: "minigame",
+        game: { id: "kingyo", cursor: 0.5, fish: [], poiLeft: 3, caught: 0 },
+      },
     };
-    const { state } = run(s, idle, 0.1);
+    const { state } = run(s, { move: { x: 1, y: 0 }, interact: false }, 0.1);
     expect(state.mode.kind).toBe("minigame");
     if (state.mode.kind === "minigame" && state.mode.game.id === "kingyo") {
-      expect(state.mode.game.fishX).toBeGreaterThan(0);
+      expect(state.mode.game.cursor).toBeGreaterThan(0.5);
     }
   });
 
-  it("minigame モード中の interact ではコアは押さない（UI が処理）", () => {
+  it("minigame モード中の interact ではコアは決定しない（UI が処理）", () => {
     const s: GameState = {
       ...initialGameState,
-      mode: { kind: "minigame", game: { id: "kingyo", fishX: 0.5, dir: 1, poiLeft: 3, caught: 0 } },
+      mode: {
+        kind: "minigame",
+        game: {
+          id: "kingyo",
+          cursor: 0.5,
+          fish: [{ x: 0.5, y: 0.5, dir: 1, speed: 0.2, alive: true }],
+          poiLeft: 3,
+          caught: 0,
+        },
+      },
     };
     const { state, events } = run(s, { move: { x: 0, y: 0 }, interact: true }, 1 / 60);
     expect(events).toEqual([]);
@@ -102,10 +114,10 @@ describe("update（固定タイムステップ統合）", () => {
     }
   });
 
-  it("minigame モード中は移動しない", () => {
+  it("minigame モード中はプレイヤーは移動しない", () => {
     const s: GameState = {
       ...initialGameState,
-      mode: { kind: "minigame", game: { id: "kuji" } },
+      mode: { kind: "minigame", game: { id: "kuji", count: 9, cursor: 0.5 } },
     };
     const { state } = run(s, { move: { x: 1, y: 0 }, interact: false }, 0.5);
     expect(state.player.pos).toEqual(initialGameState.player.pos);

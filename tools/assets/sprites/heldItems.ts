@@ -27,6 +27,14 @@ export const HELD_ORDER = [
   "senbiki-prize",
   "mogura-prize",
   "bingo-prize",
+  // 追加の食べ物バリエーション（焼きそば塩・クレープ2種・かき氷3種・ジュース2種）
+  "yakisoba_shio",
+  "crepe_ichigo",
+  "crepe_tuna",
+  "kakigori_blue",
+  "kakigori_melon",
+  "juice_grape",
+  "juice_cola",
 ] as const;
 
 type Held = (typeof HELD_ORDER)[number];
@@ -34,6 +42,42 @@ type Held = (typeof HELD_ORDER)[number];
 /** 角を透明にして丸みを出す */
 const round = (c: PixelCanvas, corners: readonly (readonly [number, number])[]): void => {
   for (const [x, y] of corners) setPixel(c, x, y, 0x00000000);
+};
+
+// --- 同形・色違いの食べ物バリエーション用ヘルパー ---
+
+/** 舟皿の焼きそば。noodle=麺色、sauce=true でソース（紅生姜＋青のり）/false で塩（青のりのみ） */
+const drawYakisoba = (c: PixelCanvas, noodle: number, sauce: boolean): void => {
+  fillRect(c, 0, 6, 10, 2, PAL.woodLight);
+  fillRect(c, 1, 3, 8, 3, noodle);
+  for (const dx of [2, 5, 7]) setPixel(c, dx, 3, PAL.lanternGlow);
+  setPixel(c, 6, 4, PAL.aonori);
+  setPixel(c, 3, 4, sauce ? PAL.candyApple : PAL.collar); // ソース=紅生姜 / 塩=白っぽい
+};
+
+/** コーンのクレープ。fill=具の色 */
+const drawCrepe = (c: PixelCanvas, fill: number): void => {
+  for (let y = 0; y < 8; y++) {
+    const w = Math.max(1, 6 - Math.floor(y * 0.8));
+    fillRect(c, 2, 1 + y, w, 1, PAL.wataameLight);
+  }
+  setPixel(c, 3, 1, fill);
+  setPixel(c, 4, 2, fill);
+  setPixel(c, 3, 3, fill);
+};
+
+/** カップのかき氷。syrup=シロップ色 */
+const drawKakigori = (c: PixelCanvas, syrup: number): void => {
+  fillRect(c, 2, 5, 6, 4, PAL.ramuneGlass); // カップ
+  for (let y = 0; y < 4; y++) fillRect(c, 4 - y, 1 + y, 2 + y * 2, 1, PAL.awningWhite); // 氷
+  fillRect(c, 3, 3, 4, 2, syrup); // シロップ
+};
+
+/** カップジュース。liquid=中身の色 */
+const drawJuice = (c: PixelCanvas, liquid: number): void => {
+  fillRect(c, 2, 3, 5, 6, PAL.ramuneGlass);
+  fillRect(c, 3, 4, 3, 4, liquid);
+  fillRect(c, 6, 0, 1, 5, PAL.collar); // ストロー
 };
 
 const drawHeld = (held: Held): PixelCanvas => {
@@ -165,12 +209,11 @@ const drawHeld = (held: Held): PixelCanvas => {
       break;
     }
     case "yakisoba": {
-      // 舟皿の焼きそば
-      fillRect(c, 0, 6, 10, 2, PAL.woodLight);
-      fillRect(c, 1, 3, 8, 3, PAL.takoyakiBall);
-      for (const dx of [2, 5, 7]) setPixel(c, dx, 3, PAL.lanternGlow);
-      setPixel(c, 3, 4, PAL.candyApple);
-      setPixel(c, 6, 4, PAL.aonori);
+      drawYakisoba(c, PAL.takoyakiBall, true); // ソース焼きそば
+      break;
+    }
+    case "yakisoba_shio": {
+      drawYakisoba(c, PAL.noodlePale, false); // 塩焼きそば（淡色の麺）
       break;
     }
     case "potato": {
@@ -213,27 +256,39 @@ const drawHeld = (held: Held): PixelCanvas => {
       break;
     }
     case "crepe": {
-      // クレープ（コーン）
-      for (let y = 0; y < 8; y++) {
-        const w = Math.max(1, 6 - Math.floor(y * 0.8));
-        fillRect(c, 2, 1 + y, w, 1, PAL.wataameLight);
-      }
-      setPixel(c, 3, 1, PAL.candyApple);
-      setPixel(c, 4, 2, PAL.candyApple);
+      drawCrepe(c, PAL.woodDark); // チョコバナナ（チョコ色）
+      break;
+    }
+    case "crepe_ichigo": {
+      drawCrepe(c, PAL.candyApple); // いちご生クリーム
+      break;
+    }
+    case "crepe_tuna": {
+      drawCrepe(c, PAL.balloonYellow); // ツナマヨ
       break;
     }
     case "kakigori": {
-      // かき氷
-      fillRect(c, 2, 5, 6, 4, PAL.ramuneGlass); // カップ
-      for (let y = 0; y < 4; y++) fillRect(c, 4 - y, 1 + y, 2 + y * 2, 1, PAL.awningWhite);
-      fillRect(c, 3, 3, 4, 2, PAL.water); // シロップ
+      drawKakigori(c, PAL.candyApple); // いちご（赤シロップ）
+      break;
+    }
+    case "kakigori_blue": {
+      drawKakigori(c, PAL.waterHi); // ブルーハワイ
+      break;
+    }
+    case "kakigori_melon": {
+      drawKakigori(c, PAL.meronGreen); // メロン
       break;
     }
     case "juice": {
-      // カップジュース
-      fillRect(c, 2, 3, 5, 6, PAL.ramuneGlass);
-      fillRect(c, 3, 4, 3, 4, PAL.candyApple);
-      fillRect(c, 6, 0, 1, 5, PAL.collar); // ストロー
+      drawJuice(c, PAL.lanternBody); // オレンジ
+      break;
+    }
+    case "juice_grape": {
+      drawJuice(c, PAL.kujiBox); // ぶどう（紫）
+      break;
+    }
+    case "juice_cola": {
+      drawJuice(c, PAL.sauceDark); // コーラ
       break;
     }
     case "senbiki-prize": {
