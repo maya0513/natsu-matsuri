@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { FIREWORKS_FIRST_LAUNCH, PLAYER_SPEED } from "./constants";
 import { initialGameState } from "./state";
+import { STALLS } from "./stalls";
 import type { GameState, Intent, Rng } from "./types";
 import { update } from "./update";
 
@@ -51,9 +52,11 @@ describe("update（固定タイムステップ統合）", () => {
   });
 
   it("屋台の近くで interact すると dialog モードになる", () => {
+    const takoyaki = STALLS.find((s) => s.id === "takoyaki");
+    if (!takoyaki) throw new Error("takoyaki 屋台が見つからない");
     const nearTakoyaki: GameState = {
       ...initialGameState,
-      player: { ...initialGameState.player, pos: { x: -4, y: 10 } },
+      player: { ...initialGameState.player, pos: { x: takoyaki.pos.x, y: takoyaki.pos.y + 0.5 } },
     };
     const { state } = run(nearTakoyaki, { move: { x: 0, y: 0 }, interact: true }, 1 / 60);
     expect(state.mode).toEqual({ kind: "dialog", stallId: "takoyaki" });

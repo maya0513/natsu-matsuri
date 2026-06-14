@@ -25,6 +25,36 @@ export const PAL = {
   kanzashi: 0xf06292ff,
   geta: 0x6b4a2fff,
 
+  // 神社の意匠
+  shimenawa: 0xb89a5aff, // 注連縄（藁）
+  shimenawaShade: 0x8a7038ff,
+  shide: 0xf2efe6ff, // 紙垂（白い稲妻形の紙）
+
+  // お化け（幽霊）。青白く透けるシルエット
+  ghostBody: 0xdbe6f4ff,
+  ghostShade: 0x9fb2cfff,
+  ghostEye: 0x2a2640ff,
+
+  // NPC（参拝客）の浴衣バリエーション。夜に沈む中間色＋差し色の帯
+  npcPink: 0xb05a78ff,
+  npcPinkShade: 0x854059ff,
+  npcPinkDot: 0xf0c4d6ff,
+  npcGreen: 0x4a7a54ff,
+  npcGreenShade: 0x355c3eff,
+  npcGreenDot: 0xc4e2c6ff,
+  npcPlum: 0x5a4a8aff,
+  npcPlumShade: 0x40335eff,
+  npcPlumDot: 0xc6bcecff,
+  npcGray: 0x556070ff,
+  npcGrayShade: 0x3c4552ff,
+  npcGrayDot: 0xc8d2dcff,
+
+  // 鎮守の杜（夜の木々のシルエット）
+  treeDark: 0x0b1410ff, // 葉の陰（ほぼ闇）
+  treeMid: 0x14241aff, // 葉の本体（沈んだ深緑）
+  treeEdge: 0x2c3f4eff, // 月明かりの淡いリム（上端の縁）
+  treeTrunk: 0x18120cff, // 幹（夜の黒褐色）
+
   // 木・構造物
   wood: 0x6b4a2fff,
   woodLight: 0x8a6038ff,

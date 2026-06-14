@@ -13,10 +13,32 @@ export const PLAYER_SHEET_ROWS = 4;
 
 export const PLAYER_ROW_OF_DIRECTION = { down: 0, up: 1, left: 2, right: 3 } as const;
 
-type Facing = "down" | "up" | "side";
+export type Facing = "down" | "up" | "side";
+
+/** 浴衣・帯の配色（NPC で差し替えてバリエーションを作るため切り出す） */
+export type FigureColors = {
+  readonly yukata: number;
+  readonly yukataShade: number;
+  readonly yukataDot: number;
+  readonly obi: number;
+  readonly obiShade: number;
+};
+
+/** 主人公の既定配色（青い浴衣） */
+export const PLAYER_COLORS: FigureColors = {
+  yukata: PAL.yukata,
+  yukataShade: PAL.yukataShade,
+  yukataDot: PAL.yukataDot,
+  obi: PAL.obi,
+  obiShade: PAL.obiShade,
+};
 
 /** 1 フレーム分の浴衣キャラを描く */
-const drawFrame = (facing: Facing, frame: number): PixelCanvas => {
+export const drawFrame = (
+  facing: Facing,
+  frame: number,
+  colors: FigureColors = PLAYER_COLORS,
+): PixelCanvas => {
   const c = createCanvas(PLAYER_FRAME_W, PLAYER_FRAME_H);
   // 歩行中は体が 1px 上下する
   const bob = frame === 1 ? 0 : frame === 2 ? 0 : 0;
@@ -52,36 +74,36 @@ const drawFrame = (facing: Facing, frame: number): PixelCanvas => {
   }
 
   // --- 胴（y: 8..14） ---
-  fillRect(c, 5, 8 + bob, 6, 4, PAL.yukata);
+  fillRect(c, 5, 8 + bob, 6, 4, colors.yukata);
   if (facing === "down") {
     // 衿合わせ
     setPixel(c, 7, 8 + bob, PAL.collar);
     setPixel(c, 8, 8 + bob, PAL.skin);
     setPixel(c, 8, 9 + bob, PAL.collar);
-    setPixel(c, 7, 9 + bob, PAL.yukataShade);
+    setPixel(c, 7, 9 + bob, colors.yukataShade);
   } else if (facing === "up") {
-    fillRect(c, 5, 8 + bob, 6, 1, PAL.yukataShade);
+    fillRect(c, 5, 8 + bob, 6, 1, colors.yukataShade);
   }
   // 袖（たもと）。歩行で前後の袖が揺れる
   const sleeveSwing = step === 0 ? 0 : step === 1 ? 1 : -1;
-  fillRect(c, 3, 9 + bob, 2, 4 + (facing === "side" ? 0 : sleeveSwing), PAL.yukataShade);
-  fillRect(c, 11, 9 + bob, 2, 4 - (facing === "side" ? 0 : sleeveSwing), PAL.yukataShade);
+  fillRect(c, 3, 9 + bob, 2, 4 + (facing === "side" ? 0 : sleeveSwing), colors.yukataShade);
+  fillRect(c, 11, 9 + bob, 2, 4 - (facing === "side" ? 0 : sleeveSwing), colors.yukataShade);
   setPixel(c, 3, 13 + bob, PAL.skin); // 手元
   setPixel(c, 12, 13 + bob, PAL.skin);
 
   // --- 帯（y: 12..13） ---
-  fillRect(c, 5, 12 + bob, 6, 2, PAL.obi);
-  setPixel(c, 5, 13 + bob, PAL.obiShade);
+  fillRect(c, 5, 12 + bob, 6, 2, colors.obi);
+  setPixel(c, 5, 13 + bob, colors.obiShade);
   if (facing === "up") {
     // 帯結び（後ろ姿のリボン）
-    fillRect(c, 6, 12 + bob, 4, 3, PAL.obiShade);
-    fillRect(c, 7, 12 + bob, 2, 2, PAL.obi);
+    fillRect(c, 6, 12 + bob, 4, 3, colors.obiShade);
+    fillRect(c, 7, 12 + bob, 2, 2, colors.obi);
   }
 
   // --- 裾（y: 14..20）。下に向かって少し広がる ---
-  fillRect(c, 5, 14 + bob, 6, 3, PAL.yukata);
-  fillRect(c, 4, 17 + bob, 8, 4, PAL.yukata);
-  fillRect(c, 4, 20 + bob, 8, 1, PAL.yukataShade);
+  fillRect(c, 5, 14 + bob, 6, 3, colors.yukata);
+  fillRect(c, 4, 17 + bob, 8, 4, colors.yukata);
+  fillRect(c, 4, 20 + bob, 8, 1, colors.yukataShade);
   // 朝顔風の柄ドット
   for (const [dx, dy] of [
     [6, 15],
@@ -90,7 +112,7 @@ const drawFrame = (facing: Facing, frame: number): PixelCanvas => {
     [8, 19],
     [10, 18],
   ] as const) {
-    setPixel(c, dx, dy + bob, PAL.yukataDot);
+    setPixel(c, dx, dy + bob, colors.yukataDot);
   }
 
   // --- 足元（y: 21..23）。下駄 + 素足、歩行で交互に出る ---

@@ -2,9 +2,14 @@
 import * as THREE from "three";
 import type { GameState } from "../game/types";
 import { createCamera, followPlayer } from "./camera";
+import { createCrowd } from "./crowd";
+import { createFireflies } from "./fireflies";
 import { createFireworksRenderer } from "./fireworks";
 import { createMinigameOverlay } from "./minigameOverlay";
+import { createRiverLanterns } from "./river";
 import { createScene } from "./scene";
+import { createSpirits } from "./spirits";
+import { createStallSmoke } from "./stallSmoke";
 import { createHeldItemSprite, createPlayerSprite } from "./sprites";
 import { groundHeightAt } from "./terrain";
 import { loadGameTextures } from "./textures";
@@ -40,6 +45,11 @@ export const createGameView = async (
   scene.add(heldItem.mesh);
   const overlay = createMinigameOverlay(container);
   const fireworks = createFireworksRenderer(scene, options.onFireworkBurst);
+  const crowd = createCrowd(scene, textures);
+  const riverLanterns = createRiverLanterns(scene);
+  const spirits = createSpirits(scene, textures);
+  const stallSmoke = createStallSmoke(scene);
+  const fireflies = createFireflies(scene);
 
   // プレイヤー追従の淡い暖色ライト（提灯に照らされて夜道を歩く存在感）
   const playerLight = new THREE.PointLight("#ffcf8a", 7, 7, 1.6);
@@ -62,6 +72,11 @@ export const createGameView = async (
         groundHeightAt(state.player.pos.x, state.player.pos.y) + 1.6,
         state.player.pos.y,
       );
+      crowd.update(state.time);
+      riverLanterns.update(state.time);
+      spirits.update(state.time);
+      stallSmoke.update(state.time);
+      fireflies.update(state.time);
       fireworks.update(state.time);
       renderer.render(scene, camera);
       overlay.draw(state);

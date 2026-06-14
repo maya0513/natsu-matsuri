@@ -25,8 +25,8 @@ export const ITEM_INFO: Record<ItemId, ItemInfo> = {
 
 /** 売買屋台の品揃え。ミニゲーム屋台はここに載らない */
 export const SHOP_MENU: Partial<Record<StallId, readonly ItemId[]>> = {
-  takoyaki: ["takoyaki", "ramune"],
-  ringoame: ["ringoame", "wataame"],
+  takoyaki: ["takoyaki"],
+  ringoame: ["ringoame", "wataame"], // 甘味屋台（りんご飴・わたあめ）
   yakisoba: ["yakisoba"],
   potato: ["potato"],
   frank: ["frank"],
@@ -34,7 +34,7 @@ export const SHOP_MENU: Partial<Record<StallId, readonly ItemId[]>> = {
   chocobanana: ["chocobanana"],
   crepe: ["crepe"],
   kakigori: ["kakigori"],
-  juice: ["juice"],
+  juice: ["juice", "ramune"], // 飲み物屋台（ジュース・ラムネ）
 };
 
 /** 指定屋台にその品物があるか */

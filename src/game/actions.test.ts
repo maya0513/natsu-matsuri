@@ -6,7 +6,7 @@ import type { GameState } from "./types";
 /** 状態だけ欲しいときのショートハンド */
 const apply = (s: GameState, a: GameAction): GameState => applyAction(s, a).state;
 
-const dialogAt = (stallId: "takoyaki" | "kingyo"): GameState => ({
+const dialogAt = (stallId: "takoyaki" | "juice" | "kingyo"): GameState => ({
   ...initialGameState,
   mode: { kind: "dialog", stallId },
 });
@@ -25,16 +25,16 @@ describe("applyAction: close-dialog", () => {
 
 describe("applyAction: eat（食べるだけ。持ち物もお金もない）", () => {
   it("その屋台にある品物なら item-eaten イベントが出て、閉じて手に持つ", () => {
-    const r = applyAction(dialogAt("takoyaki"), { kind: "eat", item: "ramune" });
+    const r = applyAction(dialogAt("juice"), { kind: "eat", item: "ramune" });
     expect(r.state.mode).toEqual({ kind: "walk" }); // 食べたら閉じて walk に戻る
     expect(r.state.heldItem).toBe("ramune"); // 手に持って歩く
     expect(r.events).toEqual([{ kind: "item-eaten" }]);
   });
 
   it("別の品を食べると手持ちが差し替わる", () => {
-    const first = applyAction(dialogAt("takoyaki"), { kind: "eat", item: "takoyaki" }).state;
+    const first = applyAction(dialogAt("juice"), { kind: "eat", item: "juice" }).state;
     const second = applyAction(
-      { ...first, mode: { kind: "dialog", stallId: "takoyaki" } },
+      { ...first, mode: { kind: "dialog", stallId: "juice" } },
       { kind: "eat", item: "ramune" },
     ).state;
     expect(second.heldItem).toBe("ramune");
