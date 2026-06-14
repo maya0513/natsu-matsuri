@@ -1,19 +1,15 @@
-import { MAP_BOUNDS, PLAYER_SPEED, WORLD } from "./constants";
+import { MAP_BOUNDS, PLAYER_SPEED, riverEastEdgeAt } from "./constants";
 import type { Direction, Player, Vec2 } from "./types";
 
 const clamp = (v: number, min: number, max: number): number => Math.min(max, Math.max(min, v));
 
 /**
- * 擁壁の当たり判定。台地(x>=plateauX)と河川敷(x<=bankX)の境界帯は、
- * 石段の z 範囲(stairZ0..stairZ1)以外では通れない。境界帯に入ろうとしたら来た側へ押し戻す。
+ * 川の当たり判定（通行を阻む唯一の壁）。川は蛇行するので、その z における東岸より西へは入れない。
+ * 台地⇄河川敷の境界帯（崖・石段）はどこでも歩いて下りられるので、ここでは堰き止めない。
  */
-const resolveWall = (prevX: number, x: number, y: number): number => {
-  if (y >= WORLD.stairZ0 && y <= WORLD.stairZ1) return x; // 石段は自由に通れる
-  // 石段の外では台地⇔河川敷の往来を禁止し、来た面に留める（大ステップでのすり抜けも防ぐ）
-  if (prevX >= WORLD.plateauX) return Math.max(x, WORLD.plateauX);
-  if (prevX <= WORLD.bankX) return Math.min(x, WORLD.bankX);
-  const mid = (WORLD.plateauX + WORLD.bankX) / 2;
-  return prevX > mid ? WORLD.plateauX : WORLD.bankX;
+const resolveRiver = (x: number, y: number): number => {
+  const edge = riverEastEdgeAt(y);
+  return x < edge ? edge : x;
 };
 
 /** 入力ベクトルの長さを 1 以下に制限（斜め入力の速度超過防止） */
@@ -38,7 +34,7 @@ export const movePlayer = (player: Player, move: Vec2, dt: number): Player => {
   const x = clamp(player.pos.x + m.x * PLAYER_SPEED * dt, MAP_BOUNDS.minX, MAP_BOUNDS.maxX);
   const y = clamp(player.pos.y + m.y * PLAYER_SPEED * dt, MAP_BOUNDS.minY, MAP_BOUNDS.maxY);
   return {
-    pos: { x: resolveWall(player.pos.x, x, y), y },
+    pos: { x: resolveRiver(x, y), y },
     facing: directionOf(m, player.facing),
     moving: true,
   };

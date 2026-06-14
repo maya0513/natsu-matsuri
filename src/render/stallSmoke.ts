@@ -1,10 +1,12 @@
-// 食べ物屋台の湯気と火の粉。各 shop 屋台から湯気が立ち上り、鉄板の火の粉がはぜる。
-// 描画専用で state.time だけ読む。レトロなドット絵調に合わせ、角ばった粒で表現。
+// 食べ物屋台の湯気と火の粉。加熱調理の品（焼き・揚げ）を売る屋台からのみ湯気が立ち上り、鉄板の火の粉がはぜる。
+// りんご飴・かき氷・ジュース等の冷たい/非加熱の屋台からは出さない。描画専用で state.time だけ読む。
 import * as THREE from "three";
+import { stallHasHotFood } from "../game/items";
 import { STALLS } from "../game/stalls";
 import { groundHeightAt } from "./terrain";
 
-const SHOPS = STALLS.filter((s) => s.kind === "shop");
+// 売り物を見て、加熱調理品を扱う屋台だけを煙の発生源にする
+const SHOPS = STALLS.filter((s) => stallHasHotFood(s.id));
 
 const STEAM_PER = 6;
 const STEAM_RISE = 2.4; // 湯気が立ち上る高さ

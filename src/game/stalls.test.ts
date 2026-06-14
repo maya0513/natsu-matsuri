@@ -16,8 +16,8 @@ describe("STALLS 配置", () => {
     }
   });
 
-  it("屋台同士が重ならない（一定距離以上離れている）", () => {
-    const MIN_DIST = 2.5;
+  it("屋台同士が十分に離れている（密集させず広々と散らす）", () => {
+    const MIN_DIST = 3.0;
     for (let i = 0; i < STALLS.length; i++) {
       for (let j = i + 1; j < STALLS.length; j++) {
         const a = STALLS[i];

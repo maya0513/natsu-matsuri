@@ -12,7 +12,7 @@ import {
   TREE_SHEET,
   YAGURA_TEXTURE,
 } from "../assets/meta";
-import { MAP_BOUNDS, WORLD } from "../game/constants";
+import { MAP_BOUNDS, RIVER, WORLD, riverCenterXAt } from "../game/constants";
 import { STALLS } from "../game/stalls";
 import { createBillboard, spriteMaterial, toUnits } from "./sprites";
 import { groundHeightAt } from "./terrain";
@@ -26,30 +26,205 @@ const PATH_WIDTH = 3.5;
  */
 const TORII_Y = -6;
 const SHRINE_Y = -32;
+/** 中央の南北軸（鳥居・参道・社の縦ライン）の x。西の川・石段から少し離すため 0 から東へずらす */
+const SACRED_X = 3;
 const YAGURA_POS = { x: 26, y: 17 } as const;
-/** 川（水面）の中心 x。灯籠流し（river.ts）と共有する */
-export const RIVER_X = -19;
 
 /** マップ全体を覆う奥行き（z = game y 方向） */
 const DEPTH = MAP_BOUNDS.maxY - MAP_BOUNDS.minY + 20;
 
+type Pt = readonly [number, number];
+
 /**
- * 祭りの広場（鳥居より南）の参道。中央の大通り（入口 +y → 鳥居）から東のやぐら広場・西の河川敷へ枝分かれする。
- * 屋台はこの道沿いに散る。鳥居より北（神域）の参道は SACRED_PATH（屋台・提灯を置かない）。
+ * 祭りの広場（鳥居より南）の参道。歩きやすく見通しの良い形を制御点の折れ線で表す。
+ * 大通りは鳥居(SACRED_X,-5.5)から x=SACRED_X の長い直線で南へ下り、最下部でのみ右へカーブして
+ * 右下の初期位置(10,29)付近に至る。直線部の途中(SACRED_X,10)で横道（川階段⇄やぐら）と交差する。
+ * 横道はスケッチでは直線だが、今まで通り自然に湾曲させる（東のやぐら／西の石段へそれぞれ緩い弧）。
+ * 西の河川敷には道を敷かず普通の地面とする。鳥居より北（神域）の参道は SACRED_PATH（まっすぐ）。
  */
-const SEGMENTS: readonly (readonly [readonly [number, number], readonly [number, number]])[] = [
-  [[0, 31], [0, TORII_Y]], // 中央の祭り大通り（入口 → 鳥居）
-  [[0, 22], [13, 22]], // 東へ枝分かれ
-  [[13, 22], [13, 7]], // 東の通り（賑わいの一角）
-  [[13, 15], [YAGURA_POS.x, 15]], // やぐら広場へ
-  [[0, 7], [WORLD.plateauX, 7]], // 西の河川敷（石段）へ
+const FESTIVAL_PATHS: readonly (readonly Pt[])[] = [
+  // 中央の祭り大通り（鳥居 → 長い直線 → 最下部で右カーブ → 右下の初期位置付近）
+  [
+    [SACRED_X, TORII_Y + 0.5],
+    [SACRED_X, 6],
+    [SACRED_X, 14],
+    [SACRED_X, 19],
+    [5, 24],
+    [8, 28],
+    [10, 30],
+  ],
+  // 横道の東半分: 交差点(SACRED_X,10) → やぐら広場へ自然に湾曲
+  [
+    [SACRED_X, 10],
+    [12, 13],
+    [20, 16],
+    [YAGURA_POS.x, YAGURA_POS.y],
+  ],
+];
+
+/** 横道の西半分: 交差点(SACRED_X,10) → 石段（台地の縁）へ自然に湾曲。石段で河川敷へ下りる */
+const STAIR_SPUR: readonly Pt[] = [
+  [SACRED_X, 10],
+  [-2, 8.5],
+  [WORLD.plateauX, 7],
 ];
 
 /** 神域の参道。鳥居 → 社の高台へまっすぐ伸びる清浄な道（屋台・提灯なし、石灯籠が並ぶ）。 */
-const SACRED_PATH: readonly [readonly [number, number], readonly [number, number]] = [
-  [0, TORII_Y],
-  [0, SHRINE_Y + 1],
+const SACRED_PATH: readonly Pt[] = [
+  [SACRED_X, TORII_Y],
+  [SACRED_X, SHRINE_Y + 1],
 ];
+
+/** 提灯・湯気を吊るす祭りの道（神域のまっすぐな参道は除く） */
+const LANTERN_PATHS: readonly (readonly Pt[])[] = [...FESTIVAL_PATHS, STAIR_SPUR];
+
+/** 制御点の折れ線を Catmull-Rom 曲線でサンプリングして中心線の点列を返す */
+const sampleCenterline = (pts: readonly Pt[]): { x: number; z: number }[] => {
+  if (pts.length < 2) return pts.map(([x, z]) => ({ x, z }));
+  const vs = pts.map(([x, z]) => new THREE.Vector3(x, 0, z));
+  const curve = new THREE.CatmullRomCurve3(vs, false, "catmullrom", 0.5);
+  let length = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1];
+    const b = pts[i];
+    if (a && b) length += Math.hypot(b[0] - a[0], b[1] - a[1]);
+  }
+  const n = Math.max(2, Math.round(length * 1.5));
+  return curve.getPoints(n).map((p) => ({ x: p.x, z: p.z }));
+};
+
+/**
+ * 中心線の点列に沿って幅 width のリボン（帯メッシュ）を張る。各頂点の高さは yOf(x,z) で決める。
+ * UV は幅方向 0..width・長さ方向に累積距離をとり、タイルが歪まず連続して並ぶ。
+ */
+const ribbon = (
+  center: readonly { x: number; z: number }[],
+  width: number,
+  yOf: (x: number, z: number) => number,
+  material: THREE.Material,
+): THREE.Mesh => {
+  const half = width / 2;
+  const n = center.length;
+  const positions = new Float32Array(n * 2 * 3);
+  const uvs = new Float32Array(n * 2 * 2);
+  let arc = 0;
+  for (let i = 0; i < n; i++) {
+    const p = center[i];
+    const a = center[Math.max(0, i - 1)];
+    const b = center[Math.min(n - 1, i + 1)];
+    if (!p || !a || !b) continue;
+    let tx = b.x - a.x;
+    let tz = b.z - a.z;
+    const tl = Math.hypot(tx, tz) || 1;
+    tx /= tl;
+    tz /= tl;
+    const nx = -tz; // 進行方向に垂直
+    const nz = tx;
+    if (i > 0) {
+      const q = center[i - 1];
+      if (q) arc += Math.hypot(p.x - q.x, p.z - q.z);
+    }
+    for (let s = 0; s < 2; s++) {
+      const sign = s === 0 ? -1 : 1;
+      const x = p.x + nx * half * sign;
+      const z = p.z + nz * half * sign;
+      const vi = (i * 2 + s) * 3;
+      positions[vi] = x;
+      positions[vi + 1] = yOf(x, z);
+      positions[vi + 2] = z;
+      const ui = (i * 2 + s) * 2;
+      uvs[ui] = s === 0 ? 0 : width;
+      uvs[ui + 1] = arc;
+    }
+  }
+  const indices: number[] = [];
+  for (let i = 0; i < n - 1; i++) {
+    const o = i * 2;
+    indices.push(o, o + 1, o + 3, o, o + 3, o + 2);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  return new THREE.Mesh(geo, material);
+};
+
+/** z ごとに左右の x 輪郭で挟まれた水平な帯（河川敷の地面など）。川の蛇行に沿って端が湾曲する */
+const bankStrip = (
+  xLeftAt: (z: number) => number,
+  xRightAt: (z: number) => number,
+  z0: number,
+  z1: number,
+  y: number,
+  material: THREE.Material,
+): THREE.Mesh => {
+  const n = Math.max(2, Math.round(z1 - z0));
+  const positions = new Float32Array((n + 1) * 2 * 3);
+  for (let i = 0; i <= n; i++) {
+    const z = z0 + ((z1 - z0) * i) / n;
+    const vl = (i * 2) * 3;
+    positions[vl] = xLeftAt(z);
+    positions[vl + 1] = y;
+    positions[vl + 2] = z;
+    const vr = (i * 2 + 1) * 3;
+    positions[vr] = xRightAt(z);
+    positions[vr + 1] = y;
+    positions[vr + 2] = z;
+  }
+  const indices: number[] = [];
+  for (let i = 0; i < n; i++) {
+    const o = i * 2;
+    indices.push(o, o + 1, o + 3, o, o + 3, o + 2);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  return new THREE.Mesh(geo, material);
+};
+
+/** 川岸の土手（縦の壁）。x 輪郭に沿って topY→botY の段差を立て、草地と水面をはっきり区切る */
+const embankment = (
+  xAt: (z: number) => number,
+  z0: number,
+  z1: number,
+  topY: number,
+  botY: number,
+  material: THREE.Material,
+): THREE.Mesh => {
+  const n = Math.max(2, Math.round(z1 - z0));
+  const positions = new Float32Array((n + 1) * 2 * 3);
+  for (let i = 0; i <= n; i++) {
+    const z = z0 + ((z1 - z0) * i) / n;
+    const x = xAt(z);
+    const vt = (i * 2) * 3;
+    positions[vt] = x;
+    positions[vt + 1] = topY;
+    positions[vt + 2] = z;
+    const vb = (i * 2 + 1) * 3;
+    positions[vb] = x;
+    positions[vb + 1] = botY;
+    positions[vb + 2] = z;
+  }
+  const indices: number[] = [];
+  for (let i = 0; i < n; i++) {
+    const o = i * 2;
+    indices.push(o, o + 1, o + 3, o, o + 3, o + 2);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  return new THREE.Mesh(geo, material);
+};
+
+/** 川の西岸 x（これより西は対岸の地面） */
+const riverWestEdgeAt = (z: number): number => riverCenterXAt(z) - RIVER.halfWidth;
+/** 川の東岸 x（これより東＝河川敷の歩ける地面。当たり判定 riverEastEdgeAt と一致） */
+const riverEastEdgeAtZ = (z: number): number => riverCenterXAt(z) + RIVER.halfWidth;
+/** 水面の高さ（河川敷より一段低く掘り下げる） */
+const WATER_Y = WORLD.bankY - 0.5;
 
 /**
  * 地形に沿って起伏する水平メッシュ（細分割＋頂点変位）。地面・参道を groundHeightAt に垂らす。
@@ -79,10 +254,10 @@ const drapedSurface = (
   return mesh;
 };
 
-/** 台地・河川敷の地面、両者をつなぐ一か所の石段、それ以外を塞ぐ擁壁 */
+/** 台地・崖・河川敷の地面と、なだらかに下りる石段。通行を阻む擁壁は無い（壁は川だけ） */
 const addGround = (scene: THREE.Scene, tex: GameTextures): void => {
-  // 台地（祭り会場）。社の丘・やぐらの盛り土に沿って起伏する
-  const platX0 = WORLD.plateauX;
+  // 台地（祭り会場）＋境界帯の崖。社の丘・やぐらの盛り土・崖の斜面に沿って起伏する
+  const platX0 = WORLD.bankX; // 崖（境界帯）も含めて地面を垂らす
   const platX1 = MAP_BOUNDS.maxX + 10;
   const platW = platX1 - platX0;
   const ground = tex.tileGround.clone();
@@ -99,24 +274,20 @@ const addGround = (scene: THREE.Scene, tex: GameTextures): void => {
   );
   scene.add(plateau);
 
-  // 河川敷（草地・一段低い）
-  const bankX0 = MAP_BOUNDS.minX - 6;
-  const bankX1 = WORLD.bankX;
-  const bank = new THREE.Mesh(
-    new THREE.PlaneGeometry(bankX1 - bankX0, DEPTH),
-    new THREE.MeshLambertMaterial({ color: "#2c4a32" }),
-  );
-  bank.rotation.x = -Math.PI / 2;
-  bank.position.set((bankX0 + bankX1) / 2, WORLD.bankY, 0);
-  scene.add(bank);
+  // 河川敷（草地・一段低い）。川の谷を残して東岸・西岸の二枚に分け、川面が草地に埋もれないようにする
+  const grass = new THREE.MeshLambertMaterial({ color: "#2c4a32" });
+  const zA = MAP_BOUNDS.minY - 10;
+  const zB = MAP_BOUNDS.maxY + 10;
+  // 東岸: 川の東岸 → 崖の根もと(bankX)。プレイヤーが歩ける河川敷
+  scene.add(bankStrip(riverEastEdgeAtZ, () => WORLD.bankX, zA, zB, WORLD.bankY, grass));
+  // 西岸: マップ西端 → 川の西岸（対岸の地面・到達不可の景色）
+  scene.add(bankStrip(() => MAP_BOUNDS.minX - 6, riverWestEdgeAt, zA, zB, WORLD.bankY, grass));
 
   const stone = new THREE.MeshLambertMaterial({ color: "#5c606b" });
-  const wallMat = new THREE.MeshLambertMaterial({ color: "#3c4048" });
   const bandW = WORLD.plateauX - WORLD.bankX;
-  const bandCx = (WORLD.plateauX + WORLD.bankX) / 2;
-  const base = WORLD.bankY - 0.6; // 段・壁の底（河川敷の少し下まで沈める）
+  const base = WORLD.bankY - 0.6; // 段の底（河川敷の少し下まで沈める）
 
-  // 一か所の長い石段（段差ジオメトリ）: z∈[stairZ0,stairZ1] にだけ置く
+  // 一か所の長い石段（段差ジオメトリ）: z∈[stairZ0,stairZ1] にだけ置く（崖の中の「下りやすい道」）
   const stepW = bandW / WORLD.stairSteps;
   const stairLen = WORLD.stairZ1 - WORLD.stairZ0;
   const stairCz = (WORLD.stairZ0 + WORLD.stairZ1) / 2;
@@ -127,18 +298,6 @@ const addGround = (scene: THREE.Scene, tex: GameTextures): void => {
     const step = new THREE.Mesh(new THREE.BoxGeometry(stepW, height, stairLen), stone);
     step.position.set(xRight - stepW / 2, (treadH + base) / 2, stairCz);
     scene.add(step);
-  }
-
-  // 擁壁: 石段の z 範囲を除いた境界帯を塞ぐ（台地縁の石垣）
-  const wallSegs: readonly (readonly [number, number])[] = [
-    [MAP_BOUNDS.minY - 10, WORLD.stairZ0],
-    [WORLD.stairZ1, MAP_BOUNDS.maxY + 10],
-  ];
-  for (const [z0, z1] of wallSegs) {
-    const len = z1 - z0;
-    const wall = new THREE.Mesh(new THREE.BoxGeometry(bandW, -base, len), wallMat);
-    wall.position.set(bandCx, base / 2, (z0 + z1) / 2);
-    scene.add(wall);
   }
 };
 
@@ -190,41 +349,57 @@ const addSky = (scene: THREE.Scene): void => {
   scene.add(moon);
 };
 
-/** 川（夜の水面）。河川敷の高さに合わせて低く置く */
+/**
+ * 川（夜の水面）。蛇行する谷を一段低い水面で満たし、両岸に土手の壁を立てて草地と水面をはっきり区切る。
+ * 水面の高さ・岸の輪郭は当たり判定（riverEastEdgeAt）と共有する契約に沿う。
+ */
 const addRiver = (scene: THREE.Scene): void => {
-  const water = new THREE.Mesh(
-    new THREE.PlaneGeometry(8, DEPTH),
-    new THREE.MeshLambertMaterial({ color: "#16314a", emissive: "#0c2236" }),
+  const z0 = MAP_BOUNDS.minY - 8;
+  const z1 = MAP_BOUNDS.maxY + 8;
+  const n = 80;
+  const center: { x: number; z: number }[] = [];
+  for (let i = 0; i <= n; i++) {
+    const z = z0 + ((z1 - z0) * i) / n;
+    center.push({ x: riverCenterXAt(z), z });
+  }
+  // 掘り下げた水面（深い藍色に発光）
+  const water = ribbon(
+    center,
+    RIVER.halfWidth * 2,
+    () => WATER_Y,
+    new THREE.MeshLambertMaterial({ color: "#123a5c", emissive: "#0b2740" }),
   );
-  water.rotation.x = -Math.PI / 2;
-  water.position.set(RIVER_X, WORLD.bankY - 0.05, 0);
   scene.add(water);
-  // 水面のきらめき（淡い反射光）を、広がった川面に沿って数カ所
+
+  // 両岸の土手（草地 bankY → 水面 WATER_Y への段差壁）。これで「歩ける岸」と「川」が一目で分かる
+  const bankWall = new THREE.MeshLambertMaterial({ color: "#4a3f2c", side: THREE.DoubleSide });
+  scene.add(embankment(riverEastEdgeAtZ, z0, z1, WORLD.bankY, WATER_Y, bankWall));
+  scene.add(embankment(riverWestEdgeAt, z0, z1, WORLD.bankY, WATER_Y, bankWall));
+
+  // 水面のきらめき（淡い反射光）を、蛇行する川面に沿って数カ所
   for (const z of [24, 10, -4, -18, -30]) {
     const shimmer = new THREE.PointLight("#6aa6d6", 4, 18, 1.5);
-    shimmer.position.set(RIVER_X + 2, WORLD.bankY + 1.2, z);
+    shimmer.position.set(riverCenterXAt(z), WORLD.bankY + 1.0, z);
     scene.add(shimmer);
   }
 };
 
-/** 参道。祭りの道（SEGMENTS）と神域の参道（SACRED_PATH）の各セグメントにタイルを敷く */
+/**
+ * 参道。祭りの道（蛇行する大通り・東の弧・河川敷の遊歩道）・石段への連絡路・神域のまっすぐな参道を、
+ * 制御点の折れ線 → Catmull-Rom 曲線 → 幅付きリボンとして地形に沿って敷く。
+ */
 const addPaths = (scene: THREE.Scene, tex: GameTextures): void => {
-  for (const [[ax, az], [bx, bz]] of [...SEGMENTS, SACRED_PATH]) {
-    // 台地の縁(plateauX)より左へは出さない（石段の上に道が張り出すのを防ぐ）
-    const x0 = Math.max(Math.min(ax, bx) - PATH_WIDTH / 2, WORLD.plateauX);
-    const x1 = Math.max(ax, bx) + PATH_WIDTH / 2;
-    const z0 = Math.min(az, bz) - PATH_WIDTH / 2;
-    const z1 = Math.max(az, bz) + PATH_WIDTH / 2;
-    const w = x1 - x0;
-    const d = z1 - z0;
+  for (const pts of [...FESTIVAL_PATHS, STAIR_SPUR, SACRED_PATH]) {
+    const center = sampleCenterline(pts);
     const path = tex.tilePath.clone();
     path.wrapS = THREE.RepeatWrapping;
     path.wrapT = THREE.RepeatWrapping;
-    path.repeat.set(w, d);
-    const cx = (x0 + x1) / 2;
-    const cz = (z0 + z1) / 2;
-    // 地形（丘・盛り土）に沿って垂れる参道
-    const mesh = drapedSurface(new THREE.MeshLambertMaterial({ map: path }), w, d, cx, cz, 0.02);
+    const mesh = ribbon(
+      center,
+      PATH_WIDTH,
+      (x, z) => groundHeightAt(x, z) + 0.02, // 地形（丘・盛り土・崖）に沿って少し浮かせる
+      new THREE.MeshLambertMaterial({ map: path }),
+    );
     scene.add(mesh);
   }
 };
@@ -244,25 +419,36 @@ const addStalls = (scene: THREE.Scene, tex: GameTextures): void => {
   }
 };
 
-/** 参道沿いに提灯を吊るす（曲がり角ごとに暖色の光だまり） */
+/** 祭りの参道沿いに提灯を吊るす（一定間隔で道の両脇に、要所に暖色の光だまり） */
 const addLanterns = (scene: THREE.Scene, tex: GameTextures): void => {
   const h = toUnits(LANTERN_TEXTURE.h);
   const HANG_HEIGHT = 2.4;
   const off = PATH_WIDTH / 2 + 0.5;
   let i = 0;
-  for (const [[ax, az], [bx, bz]] of SEGMENTS) {
-    const len = Math.hypot(bx - ax, bz - az);
-    if (len < 0.001) continue;
-    const ux = (bx - ax) / len;
-    const uz = (bz - az) / len;
-    const px = -uz; // 進行方向に垂直
-    const pz = ux;
-    for (let dpos = 2; dpos < len; dpos += 4.5) {
-      const cx = ax + ux * dpos;
-      const cz = az + uz * dpos;
+  for (const pts of LANTERN_PATHS) {
+    const center = sampleCenterline(pts);
+    let arc = 0;
+    let nextAt = 2;
+    for (let k = 0; k < center.length; k++) {
+      const p = center[k];
+      const prev = center[k - 1];
+      if (!p) continue;
+      if (prev) arc += Math.hypot(p.x - prev.x, p.z - prev.z);
+      if (arc < nextAt) continue;
+      nextAt += 4.5;
+      const a = center[Math.max(0, k - 1)];
+      const b = center[Math.min(center.length - 1, k + 1)];
+      if (!a || !b) continue;
+      let tx = b.x - a.x;
+      let tz = b.z - a.z;
+      const tl = Math.hypot(tx, tz) || 1;
+      tx /= tl;
+      tz /= tl;
+      const px = -tz; // 進行方向に垂直
+      const pz = tx;
       for (const s of [-1, 1] as const) {
-        const lx = cx + px * off * s;
-        const lz = cz + pz * off * s;
+        const lx = p.x + px * off * s;
+        const lz = p.z + pz * off * s;
         const lantern = createBillboard(tex.lantern, LANTERN_TEXTURE.w, LANTERN_TEXTURE.h, lx, lz);
         lantern.position.y = groundHeightAt(lx, lz) + HANG_HEIGHT + h / 2;
         scene.add(lantern);
@@ -354,7 +540,7 @@ const addStoneLanterns = (scene: THREE.Scene, tex: GameTextures): void => {
   let i = 0;
   for (let y = TORII_Y - 2; y >= SHRINE_Y + 2; y -= 5) {
     for (const s of [-1, 1] as const) {
-      const x = AXIS_OFF * s;
+      const x = SACRED_X + AXIS_OFF * s; // 東へずらした中央軸の両脇
       addStanding(scene, tex.stoneLantern, w, h, x, y);
       // 数基おきに地面を照らす暖色のともしび
       if (i % 3 === 0) {
@@ -480,8 +666,8 @@ export const createScene = (tex: GameTextures): THREE.Scene => {
   addStalls(scene, tex);
   addLanterns(scene, tex);
 
-  addStanding(scene, tex.torii, TORII_TEXTURE.w, TORII_TEXTURE.h, 0, TORII_Y);
-  addStanding(scene, tex.shrine, SHRINE_TEXTURE.w, SHRINE_TEXTURE.h, 0, SHRINE_Y);
+  addStanding(scene, tex.torii, TORII_TEXTURE.w, TORII_TEXTURE.h, SACRED_X, TORII_Y);
+  addStanding(scene, tex.shrine, SHRINE_TEXTURE.w, SHRINE_TEXTURE.h, SACRED_X, SHRINE_Y);
   addShinboku(scene, tex);
 
   // やぐら（広場の塔）。提灯の暖色光を添える

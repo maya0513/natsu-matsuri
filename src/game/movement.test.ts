@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAP_BOUNDS, PLAYER_SPEED, WORLD } from "./constants";
+import { MAP_BOUNDS, PLAYER_SPEED, WORLD, riverEastEdgeAt } from "./constants";
 import { movePlayer } from "./movement";
 import type { Player } from "./types";
 
@@ -45,15 +45,22 @@ describe("movePlayer", () => {
     expect(p.pos.x).toBe(MAP_BOUNDS.maxX);
   });
 
-  it("石段の外では擁壁に阻まれ台地から河川敷へ抜けられない", () => {
-    const wallY = WORLD.stairZ1 + 5; // 石段の z 範囲外
-    const p = movePlayer(at(WORLD.plateauX, wallY), { x: -1, y: 0 }, 10);
-    expect(p.pos.x).toBe(WORLD.plateauX); // 台地の縁で止まる
+  it("崖の縁はどこでも歩いて下りられる（擁壁がない）", () => {
+    const cliffY = WORLD.stairZ1 + 5; // 石段の z 範囲外＝急斜面の崖
+    const p = movePlayer(at(WORLD.plateauX, cliffY), { x: -1, y: 0 }, 10);
+    expect(p.pos.x).toBeLessThan(WORLD.bankX); // 崖を下りて河川敷側まで抜ける
   });
 
-  it("石段の z 範囲内なら台地から河川敷へ下りられる", () => {
+  it("石段の z 範囲内でも台地から河川敷へ下りられる", () => {
     const stairY = (WORLD.stairZ0 + WORLD.stairZ1) / 2;
     const p = movePlayer(at(WORLD.plateauX, stairY), { x: -1, y: 0 }, 10);
-    expect(p.pos.x).toBeLessThan(WORLD.bankX); // 河川敷側まで抜ける
+    expect(p.pos.x).toBeLessThan(WORLD.bankX);
+  });
+
+  it("川には入れない（蛇行する東岸でせき止められる）", () => {
+    const y = 0;
+    const p = movePlayer(at(WORLD.bankX, y), { x: -1, y: 0 }, 10);
+    expect(p.pos.x).toBeGreaterThanOrEqual(riverEastEdgeAt(y) - 1e-9);
+    expect(p.pos.x).toBeCloseTo(riverEastEdgeAt(y));
   });
 });

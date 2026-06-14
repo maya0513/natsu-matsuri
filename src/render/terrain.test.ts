@@ -32,9 +32,24 @@ describe("groundHeightAt（地形の高低差プロファイル）", () => {
     expect(h).toBeGreaterThan(WORLD.bankY);
   });
 
-  it("石段の z 範囲外（擁壁）では境界帯でも降下しない", () => {
-    expect(groundHeightAt(midX, WORLD.stairZ1 + 5)).toBe(0);
-    expect(groundHeightAt(midX, WORLD.stairZ0 - 5)).toBe(0);
+  it("石段の z 範囲外（崖）でも境界帯は河川敷へ降下する＝歩いて下りられる", () => {
+    const north = groundHeightAt(midX, WORLD.stairZ1 + 5);
+    const south = groundHeightAt(midX, WORLD.stairZ0 - 5);
+    for (const h of [north, south]) {
+      expect(h).toBeLessThan(0);
+      expect(h).toBeGreaterThan(WORLD.bankY);
+    }
+  });
+
+  it("崖（石段の外）は台地の縁から河川敷へ単調に降下する", () => {
+    const z = WORLD.stairZ1 + 5;
+    let prev = groundHeightAt(WORLD.plateauX, z);
+    for (let x = WORLD.plateauX; x >= WORLD.bankX; x -= 0.1) {
+      const h = groundHeightAt(x, z);
+      expect(h).toBeLessThanOrEqual(prev + 1e-9);
+      prev = h;
+    }
+    expect(groundHeightAt(WORLD.bankX, z)).toBeCloseTo(WORLD.bankY);
   });
 });
 
