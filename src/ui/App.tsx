@@ -3,7 +3,7 @@ import { useSignal } from "@preact/signals";
 import { useEffect } from "preact/hooks";
 import type { GameAction } from "../game/actions";
 import { SHOP_MENU } from "../game/items";
-import { MinigamePanel } from "./MinigamePanel";
+import { MinigamePanel, MinigameStatus } from "./MinigamePanel";
 import { ShopDialog } from "./ShopDialog";
 import { dialogStallSig, minigameSig, nearbyStallSig } from "./bridge";
 
@@ -43,19 +43,20 @@ export const App = ({ dispatch, toggleSound }: Props) => {
       const btns = modalButtons();
       if (btns.length === 0) return;
 
-      // 決定: フォーカス中のモーダルボタンを押す。フォーカスが外れていても
-      // ミニゲーム進行中なら commit を直接 dispatch する（連打で すくう/撃つ 等）。
+      // 決定: ミニゲーム進行中は常に commit（引く/すくう/撃つ）。やめるボタンに
+      // フォーカスがあっても誤って退出しないよう、進行中は commit を優先する。
+      // 進行中でなければ（売買ダイアログ／結果画面）フォーカス中のボタンを押す。
       if (e.key === "Enter" || e.key === " " || e.code === "Space" || e.code === "KeyE") {
-        const el = document.activeElement;
-        if (el instanceof HTMLButtonElement && el.closest("[data-modal]")) {
-          e.preventDefault();
-          el.click();
-          return;
-        }
         const mg = minigameSig.peek();
         if (mg && !mg.finished) {
           e.preventDefault();
           dispatch({ kind: "minigame-commit", rng: Math.random });
+          return;
+        }
+        const el = document.activeElement;
+        if (el instanceof HTMLButtonElement && el.closest("[data-modal]")) {
+          e.preventDefault();
+          el.click();
         }
         return;
       }
@@ -94,8 +95,9 @@ export const App = ({ dispatch, toggleSound }: Props) => {
     return () => window.removeEventListener("keydown", onKey);
   }, [dispatch]);
 
-  // モーダルが開いた / 選択肢の構成が変わったら先頭の選択肢に自動フォーカス
-  const focusKey = dialogStall ?? (minigame ? `${minigame.id}|${minigame.finished}` : "");
+  // モーダルが開いた / 選択肢の構成が変わったら先頭の選択肢に自動フォーカス。
+  // ミニゲーム進行中は自動フォーカスしない（←→ はカーソル、Enter は commit に使うため）。
+  const focusKey = dialogStall ?? (minigame?.finished ? `${minigame.id}|done` : "");
   useEffect(() => {
     if (!focusKey) return;
     modalButtons()[0]?.focus();
@@ -125,6 +127,7 @@ export const App = ({ dispatch, toggleSound }: Props) => {
       )}
 
       {dialogStall && <ShopDialog stallId={dialogStall} dispatch={dispatch} />}
+      {minigame && <MinigameStatus view={minigame} />}
       {minigame && <MinigamePanel view={minigame} dispatch={dispatch} />}
     </div>
   );

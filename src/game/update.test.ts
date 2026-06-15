@@ -83,7 +83,7 @@ describe("update（固定タイムステップ統合）", () => {
       ...initialGameState,
       mode: {
         kind: "minigame",
-        game: { id: "kingyo", cursor: 0.5, fish: [], poiLeft: 3, caught: 0 },
+        game: { id: "kingyo", cursor: 0.5, cursorY: 0.5, fish: [], poiLeft: 3, caught: 0 },
       },
     };
     const { state } = run(s, { move: { x: 1, y: 0 }, interact: false }, 0.1);
@@ -101,7 +101,8 @@ describe("update（固定タイムステップ統合）", () => {
         game: {
           id: "kingyo",
           cursor: 0.5,
-          fish: [{ x: 0.5, y: 0.5, dir: 1, speed: 0.2, alive: true }],
+          cursorY: 0.5,
+          fish: [{ x: 0.5, y: 0.5, vx: 0.1, vy: 0, phase: 0, alive: true }],
           poiLeft: 3,
           caught: 0,
         },

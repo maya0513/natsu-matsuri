@@ -95,13 +95,20 @@ export type KujiState = {
   readonly result?: Fortune;
 };
 
-/** ヨーヨー釣り: 上下に揺れる水風船を、自分で動かすこよりで狙って掬う */
+/**
+ * ヨーヨー釣り: 水面に浮かぶ水風船を、自分で動かすこよりで狙って 1 つ釣る。
+ * 風船はデザイン（色）・大きさ・配置がすべて別々のランダム。
+ */
 export type Balloon = {
   readonly x: number;
   /** 浮きの基準高さ 0..1（描画用） */
   readonly baseY: number;
   /** 上下揺れの位相 */
   readonly phase: number;
+  /** デザイン（色）番号 */
+  readonly kind: number;
+  /** 表示サイズ係数 */
+  readonly size: number;
   readonly alive: boolean;
 };
 export type YoyoState = {
@@ -109,34 +116,42 @@ export type YoyoState = {
   /** こよりの横位置 0..1 */
   readonly cursor: number;
   readonly balloons: readonly Balloon[];
-  /** こよりの残り強度（掬える残り回数） */
+  /** こよりの残り強度（外せる残り回数。1 つ釣れたら終了） */
   readonly triesLeft: number;
   readonly caught: number;
   readonly last?: "hit" | "miss";
 };
 
-/** 金魚すくい: 泳ぐ金魚を、自分で動かすポイで狙って掬う。ポイは数回で破れる */
+/** 金魚すくい: 水面を不規則に泳ぐ金魚を、自分で動かすポイで狙って掬う。ポイは数回で破れる */
 export type Fish = {
+  /** 水面上の横位置 0..1 */
   readonly x: number;
-  /** 泳ぐ深さ 0..1（描画用） */
+  /** 水面上の前後位置 0..1 */
   readonly y: number;
-  readonly dir: 1 | -1;
-  readonly speed: number;
+  /** 速度（毎秒）。向きの揺らぎで不規則に泳ぐ */
+  readonly vx: number;
+  readonly vy: number;
+  /** 揺らぎの位相 */
+  readonly phase: number;
   readonly alive: boolean;
 };
 export type KingyoState = {
   readonly id: "kingyo";
   /** ポイの横位置 0..1 */
   readonly cursor: number;
+  /** ポイの前後位置 0..1 */
+  readonly cursorY: number;
   readonly fish: readonly Fish[];
   readonly poiLeft: number;
   readonly caught: number;
   readonly last?: "hit" | "miss";
 };
 
-/** 射的: 照準を自分で動かし、棚に並ぶ景品を撃ち落とす */
+/** 射的: 照準を縦横に動かし、棚（複数段）に並ぶ景品を撃ち落とす */
 export type Target = {
   readonly x: number;
+  /** 段の高さ 0..1（0=下段, 1=上段） */
+  readonly y: number;
   /** まだ倒されていないか */
   readonly alive: boolean;
 };
@@ -144,6 +159,8 @@ export type ShatekiState = {
   readonly id: "shateki";
   /** 照準の横位置 0..1 */
   readonly cursor: number;
+  /** 照準の縦位置 0..1（段の高さ） */
+  readonly cursorY: number;
   readonly shotsLeft: number;
   readonly targets: readonly Target[];
   readonly hits: number;
@@ -164,6 +181,8 @@ export type Mole = {
   readonly x: number;
   readonly up: boolean;
   readonly timer: number;
+  /** たたかれて目が×の残り秒。>0 の間は出たまま動かず、当たり判定外。0 で引っ込む */
+  readonly stunned: number;
 };
 export type MoguraState = {
   readonly id: "mogura";
@@ -175,11 +194,15 @@ export type MoguraState = {
   readonly last?: "hit" | "miss";
 };
 
-/** ビンゴ: 3x3 のカード。引いた玉がカードにあれば印、1 列揃えばビンゴ */
+/**
+ * ビンゴ: 5×5・中央フリーのカード（実物の紙を模す）。各マスは 0〜5 の数字。
+ * 引いた玉（0〜5）と同じ数字のマスはすべて印が付く。1 ライン揃えばビンゴ。
+ * 中央マス（index 12）は値 -1（フリー）で最初から印が付く。
+ */
 export type BingoState = {
   readonly id: "bingo";
-  readonly card: readonly number[]; // 9 マス
-  readonly marked: readonly boolean[]; // 9 マス
+  readonly card: readonly number[]; // 25 マス（中央は -1=フリー）
+  readonly marked: readonly boolean[]; // 25 マス
   readonly drawn: readonly number[];
   readonly lastBall?: number;
   readonly bingo: boolean;

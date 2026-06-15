@@ -21,50 +21,77 @@ import type {
 /** カーソルが 0..1 を横断する速さ（/秒）。←→ 押下中に適用 */
 const CURSOR_SPEED = 1.1;
 
-/** 命中判定の窓（カーソル位置と対象 x の許容差） */
+/** 命中判定の窓（カーソル位置と対象の許容差）。金魚・射的は縦横の 2D */
 export const HIT_WINDOW = {
-  yoyo: 0.1,
-  kingyo: 0.12,
-  shateki: 0.08,
+  yoyo: 0.13,
+  kingyoX: 0.15,
+  kingyoY: 0.17,
+  shatekiX: 0.13,
+  shatekiY: 0.32,
 } as const;
 
 /** モグラの穴の横位置 */
 export const MOGURA_HOLES = [0.15, 0.38, 0.62, 0.85] as const;
-/** モグラが出ている/隠れている秒数 */
-const MOGURA_UP = 0.8;
-const MOGURA_DOWN = 0.6;
+/** モグラが出ている/隠れている秒数（ゆっくりめの周期） */
+const MOGURA_UP = 1.5;
+const MOGURA_DOWN = 1.3;
+/** たたかれて×目で固まる秒数（この間は出たまま動かず判定外、その後引っ込む） */
+const MOGURA_STUN = 0.45;
 /** ハンマーの命中窓 */
-const MOGURA_WINDOW = 0.12;
+const MOGURA_WINDOW = 0.14;
 
-/** 水風船・的・金魚の初期横位置 */
-export const YOYO_POS = [0.18, 0.4, 0.6, 0.82] as const;
-export const SHATEKI_TARGETS = [0.18, 0.4, 0.6, 0.82] as const;
-/** 金魚の初期配置（x, 深さ y, 向き, 速さ） */
-const KINGYO_FISH: readonly Omit<Fish, "alive">[] = [
-  { x: 0.22, y: 0.35, dir: 1, speed: 0.18 },
-  { x: 0.52, y: 0.6, dir: -1, speed: 0.23 },
-  { x: 0.74, y: 0.45, dir: 1, speed: 0.16 },
-  { x: 0.4, y: 0.78, dir: -1, speed: 0.2 },
+/** 金魚の数とポイの回数 */
+const KINGYO_COUNT = 5;
+const KINGYO_POI = 2;
+/** 金魚が泳ぐ範囲（水面 0..1 の内側） */
+const SWIM_MIN = 0.1;
+const SWIM_MAX = 0.9;
+
+/** ヨーヨーのデザイン（色）数と初期数 */
+export const YOYO_KINDS = 5;
+const YOYO_COUNT = 6;
+
+/** 射的の的配置（x, 段の高さ y）。下段 3・上段 2 */
+const SHATEKI_LAYOUT: readonly { readonly x: number; readonly y: number }[] = [
+  { x: 0.2, y: 0.2 },
+  { x: 0.5, y: 0.2 },
+  { x: 0.8, y: 0.2 },
+  { x: 0.32, y: 0.8 },
+  { x: 0.68, y: 0.8 },
 ];
 
 /** 水風船の上下揺れの速さ（rad/秒） */
-const BOB_SPEED = 2.0;
+const BOB_SPEED = 1.6;
 
-/** ビンゴ: 玉の最大値と 3x3 の列 */
-const BINGO_BALLS = 12;
-const BINGO_LINES: readonly (readonly [number, number, number])[] = [
-  [0, 1, 2],
-  [3, 4, 5],
-  [6, 7, 8],
-  [0, 3, 6],
-  [1, 4, 7],
-  [2, 5, 8],
-  [0, 4, 8],
-  [2, 4, 6],
-];
+/** ビンゴ: 実物の紙を模した 5×5・中央フリー。各マス・玉とも 1〜100 のランダム */
+export const BINGO_SIZE = 5;
+export const BINGO_CELLS = BINGO_SIZE * BINGO_SIZE; // 25
+export const BINGO_CENTER = 12; // 中央（FREE）
+export const BINGO_NUM_MAX = 100; // 数字は 1〜100
+/** 玉を引ける回数の上限（これを超えると終了） */
+export const BINGO_DRAWS = 18;
+/** 引いた玉がカードの数字（未マーク）になりやすさ（festival 用に当たりやすく） */
+const BINGO_HIT_BIAS = 0.7;
+/** 中央フリーのマス値（描画用の番兵） */
+export const BINGO_FREE = -1;
+
+/** 5×5 の当たりライン（行 5 + 列 5 + 対角 2 = 12 本） */
+const buildBingoLines = (): readonly (readonly number[])[] => {
+  const lines: number[][] = [];
+  for (let r = 0; r < BINGO_SIZE; r++) {
+    lines.push(Array.from({ length: BINGO_SIZE }, (_, c) => r * BINGO_SIZE + c));
+  }
+  for (let c = 0; c < BINGO_SIZE; c++) {
+    lines.push(Array.from({ length: BINGO_SIZE }, (_, r) => r * BINGO_SIZE + c));
+  }
+  lines.push(Array.from({ length: BINGO_SIZE }, (_, i) => i * BINGO_SIZE + i));
+  lines.push(Array.from({ length: BINGO_SIZE }, (_, i) => i * BINGO_SIZE + (BINGO_SIZE - 1 - i)));
+  return lines;
+};
+const BINGO_LINES = buildBingoLines();
 
 /** 千本引きの当たり判定 */
-const senbikiResult = (r: number): SenbikiState["result"] =>
+const senbikiResult = (r: number): "大当たり" | "当たり" | "はずれ" =>
   r < 0.08 ? "大当たり" : r < 0.5 ? "当たり" : "はずれ";
 
 /** おみくじの確率（累積しきい値, rng < 値で確定） */
@@ -94,7 +121,7 @@ export type MinigamePress = {
   readonly hit: boolean;
 };
 
-export const initMinigame = (id: MinigameId): MinigameState => {
+export const initMinigame = (id: MinigameId, rng: Rng = Math.random): MinigameState => {
   switch (id) {
     case "kuji":
       return { id: "kuji", count: 9, cursor: 0.5 };
@@ -102,33 +129,52 @@ export const initMinigame = (id: MinigameId): MinigameState => {
       return {
         id: "yoyo",
         cursor: 0.5,
-        balloons: YOYO_POS.map((x, i) => ({
-          x,
-          baseY: 0.4 + 0.12 * (i % 2),
-          phase: i * 1.3,
+        // デザイン・大きさ・配置をすべて別々のランダムに
+        balloons: Array.from({ length: YOYO_COUNT }, () => ({
+          x: 0.1 + rng() * 0.8,
+          baseY: rng(),
+          phase: rng() * Math.PI * 2,
+          kind: Math.floor(rng() * YOYO_KINDS),
+          size: 0.6 + rng() * 0.5,
           alive: true,
         })),
-        triesLeft: 5,
+        // ヨーヨーは 1 つ釣れたら終わり（成功で終了）。ここは「外せる回数」の上限
+        triesLeft: 3,
         caught: 0,
       };
     case "kingyo":
       return {
         id: "kingyo",
         cursor: 0.5,
-        fish: KINGYO_FISH.map((f) => ({ ...f, alive: true })),
-        poiLeft: 4,
+        cursorY: 0.5,
+        // 5 匹を不規則な位置・向きで（毎秒の揺らぎで不規則に泳ぐ）
+        fish: Array.from({ length: KINGYO_COUNT }, () => {
+          const angle = rng() * Math.PI * 2;
+          const speed = 0.1 + rng() * 0.12;
+          return {
+            x: SWIM_MIN + rng() * (SWIM_MAX - SWIM_MIN),
+            y: SWIM_MIN + rng() * (SWIM_MAX - SWIM_MIN),
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            phase: rng() * Math.PI * 2,
+            alive: true,
+          };
+        }),
+        poiLeft: KINGYO_POI,
         caught: 0,
       };
     case "shateki":
       return {
         id: "shateki",
         cursor: 0.5,
+        cursorY: 0.2, // 最初は下段を狙う
         shotsLeft: 6,
-        targets: SHATEKI_TARGETS.map((x) => ({ x, alive: true })),
+        targets: SHATEKI_LAYOUT.map((t) => ({ x: t.x, y: t.y, alive: true })),
         hits: 0,
       };
     case "senbiki":
-      return { id: "senbiki", count: 12, cursor: 0.5 };
+      // 紐は少なめ（何が起きたか分かりやすく）
+      return { id: "senbiki", count: 6, cursor: 0.5 };
     case "mogura":
       return {
         id: "mogura",
@@ -137,18 +183,24 @@ export const initMinigame = (id: MinigameId): MinigameState => {
           x,
           up: i % 2 === 0,
           timer: MOGURA_UP * (0.4 + 0.3 * i),
+          stunned: 0,
         })),
         triesLeft: 12,
         hits: 0,
       };
-    case "bingo":
-      return {
-        id: "bingo",
-        card: [1, 2, 3, 4, 5, 6, 7, 8, 9],
-        marked: Array.from({ length: 9 }, () => false),
-        drawn: [],
-        bingo: false,
-      };
+    case "bingo": {
+      // 各マスに 1〜100 のユニークなランダム数字。中央はフリー（最初から印）
+      const used = new Set<number>();
+      const card = Array.from({ length: BINGO_CELLS }, (_, i) => {
+        if (i === BINGO_CENTER) return BINGO_FREE;
+        let n = 1 + Math.floor(rng() * BINGO_NUM_MAX);
+        while (used.has(n)) n = 1 + Math.floor(rng() * BINGO_NUM_MAX);
+        used.add(n);
+        return n;
+      });
+      const marked = Array.from({ length: BINGO_CELLS }, (_, i) => i === BINGO_CENTER);
+      return { id: "bingo", card, marked, drawn: [], bingo: false };
+    }
   }
 };
 
@@ -158,22 +210,40 @@ const clamp01 = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v);
 const moveCursor = (cursor: number, dt: number, moveX: number): number =>
   clamp01(cursor + moveX * CURSOR_SPEED * dt);
 
-/** 金魚を 1 ステップ泳がせる（端で反転） */
+/** 金魚を 1 ステップ泳がせる。進行方向を毎フレーム少しずつ揺らして不規則に泳ぐ */
 const swimFish = (f: Fish, dt: number): Fish => {
-  let x = f.x + f.dir * f.speed * dt;
-  let dir = f.dir;
-  if (x > 0.95) {
-    x = 0.95;
-    dir = -1;
-  } else if (x < 0.05) {
-    x = 0.05;
-    dir = 1;
+  const phase = f.phase + dt;
+  const turn = (Math.sin(phase * 2.7) + 0.6 * Math.sin(phase * 1.3 + 1.7)) * 1.6 * dt;
+  const c = Math.cos(turn);
+  const s = Math.sin(turn);
+  let vx = f.vx * c - f.vy * s;
+  let vy = f.vx * s + f.vy * c;
+  let x = f.x + vx * dt;
+  let y = f.y + vy * dt;
+  if (x < SWIM_MIN) {
+    x = SWIM_MIN;
+    vx = Math.abs(vx);
+  } else if (x > SWIM_MAX) {
+    x = SWIM_MAX;
+    vx = -Math.abs(vx);
   }
-  return { ...f, x, dir };
+  if (y < SWIM_MIN) {
+    y = SWIM_MIN;
+    vy = Math.abs(vy);
+  } else if (y > SWIM_MAX) {
+    y = SWIM_MAX;
+    vy = -Math.abs(vy);
+  }
+  return { ...f, x, y, vx, vy, phase };
 };
 
-/** モグラの出没（叩かれても時間でまた出る）を 1 ステップ進める */
+/** モグラの出没を 1 ステップ進める。たたかれた（stunned>0）間は固まり、0 で引っ込む */
 const stepMole = (mole: Mole, dt: number): Mole => {
+  if (mole.stunned > 0) {
+    const stunned = mole.stunned - dt;
+    if (stunned <= 0) return { ...mole, stunned: 0, up: false, timer: MOGURA_DOWN };
+    return { ...mole, stunned };
+  }
   let timer = mole.timer - dt;
   let up = mole.up;
   if (timer <= 0) {
@@ -187,7 +257,12 @@ const stepMole = (mole: Mole, dt: number): Mole => {
  * 時間経過の更新。moveX（←→ 入力）でカーソルを動かし、対象の環境モーションを進める。
  * 抽選系（kuji/senbiki）と射的は環境モーションがないので、入力がなければ同一参照を返す。
  */
-export const stepMinigame = (state: MinigameState, dt: number, moveX = 0): MinigameState => {
+export const stepMinigame = (
+  state: MinigameState,
+  dt: number,
+  moveX = 0,
+  moveY = 0,
+): MinigameState => {
   switch (state.id) {
     case "kuji":
     case "senbiki": {
@@ -195,8 +270,13 @@ export const stepMinigame = (state: MinigameState, dt: number, moveX = 0): Minig
       return { ...state, cursor: moveCursor(state.cursor, dt, moveX) };
     }
     case "shateki": {
-      if (moveX === 0) return state;
-      return { ...state, cursor: moveCursor(state.cursor, dt, moveX) };
+      if (moveX === 0 && moveY === 0) return state;
+      // 画面の上（move.y は負）を上段（cursorY 大）へ
+      return {
+        ...state,
+        cursor: moveCursor(state.cursor, dt, moveX),
+        cursorY: moveCursor(state.cursorY, dt, -moveY),
+      };
     }
     case "yoyo": {
       const balloons = state.balloons.map((b) =>
@@ -206,7 +286,12 @@ export const stepMinigame = (state: MinigameState, dt: number, moveX = 0): Minig
     }
     case "kingyo": {
       const fish = state.fish.map((f) => (f.alive ? swimFish(f, dt) : f));
-      return { ...state, cursor: moveCursor(state.cursor, dt, moveX), fish };
+      return {
+        ...state,
+        cursor: moveCursor(state.cursor, dt, moveX),
+        cursorY: moveCursor(state.cursorY, dt, -moveY),
+        fish,
+      };
     }
     case "mogura": {
       const moles = state.moles.map((m) => stepMole(m, dt));
@@ -237,6 +322,32 @@ const nearestIndex = (
   return best;
 };
 
+/** 2D（縦横）でカーソルに最も近い対象 index。窓は縦横で別。なければ -1 */
+const nearestIndex2D = (
+  cx: number,
+  cy: number,
+  xw: number,
+  yw: number,
+  items: readonly { readonly x: number; readonly y: number }[],
+  eligible: (i: number) => boolean,
+): number => {
+  let best = -1;
+  let bestD = Number.POSITIVE_INFINITY;
+  items.forEach((it, i) => {
+    if (!eligible(i)) return;
+    const dx = Math.abs(cx - it.x) / xw;
+    const dy = Math.abs(cy - it.y) / yw;
+    if (dx <= 1 && dy <= 1) {
+      const d = dx * dx + dy * dy;
+      if (d < bestD) {
+        best = i;
+        bestD = d;
+      }
+    }
+  });
+  return best;
+};
+
 /** カーソル位置から、count 枚の札のうち選択中の index を求める（均等配置の最近傍） */
 export const lotIndexAt = (cursor: number, count: number): number =>
   Math.max(0, Math.min(count - 1, Math.round(cursor * count - 0.5)));
@@ -253,23 +364,69 @@ export const pullString = (state: SenbikiState, rng: Rng): SenbikiState => {
   return { ...state, picked: lotIndexAt(state.cursor, state.count), result: senbikiResult(rng()) };
 };
 
-/** ビンゴ: 玉を 1 つ引いてカードに印を付ける。揃えば bingo になる */
+/**
+ * ビンゴ: 玉を 1 つ引く（1〜100、重複なし）。同じ数字のマスに印が付く。1 ライン揃えば bingo。
+ * 1 枚カードでも勝てるよう、玉はカードの未マーク数字に当たりやすく寄せる（festival 向け）。
+ */
 export const drawBall = (state: BingoState, rng: Rng): BingoState => {
-  if (state.bingo) return state;
+  if (state.bingo || state.drawn.length >= BINGO_DRAWS) return state;
+  const drawnSet = new Set(state.drawn);
+  const unmarkedCard = state.card.filter((n, i) => n >= 0 && !state.marked[i]);
   const remaining: number[] = [];
-  for (let n = 1; n <= BINGO_BALLS; n++) if (!state.drawn.includes(n)) remaining.push(n);
+  for (let n = 1; n <= BINGO_NUM_MAX; n++) if (!drawnSet.has(n)) remaining.push(n);
   if (remaining.length === 0) return state;
-  const ball = remaining[Math.floor(rng() * remaining.length)] ?? remaining[0] ?? 0;
+
+  let ball: number;
+  if (rng() < BINGO_HIT_BIAS && unmarkedCard.length > 0) {
+    ball = unmarkedCard[Math.floor(rng() * unmarkedCard.length)] ?? unmarkedCard[0] ?? 0;
+  } else {
+    // ハズレ玉はカードに無い数字を優先（無ければ残り全体から）
+    const decoys = remaining.filter((n) => !state.card.includes(n));
+    const pool = decoys.length > 0 ? decoys : remaining;
+    ball = pool[Math.floor(rng() * pool.length)] ?? pool[0] ?? 0;
+  }
   const marked = state.card.map((n, i) => state.marked[i] || n === ball);
   const bingo = BINGO_LINES.some((line) => line.every((i) => marked[i]));
   return { ...state, drawn: [...state.drawn, ball], marked, bingo, lastBall: ball };
 };
 
 /**
+ * クリック/タッチで対象を直接指定したとき、その対象にカーソルを合わせる。
+ * これにより以降の判定ロジックを十字キー時とそのまま共有できる（操作併存）。
+ */
+const snapCursor = (state: MinigameState, target: number): MinigameState => {
+  switch (state.id) {
+    case "kuji":
+    case "senbiki":
+      return { ...state, cursor: (target + 0.5) / state.count };
+    case "yoyo":
+      return { ...state, cursor: state.balloons[target]?.x ?? state.cursor };
+    case "kingyo": {
+      const f = state.fish[target];
+      return f ? { ...state, cursor: f.x, cursorY: f.y } : state;
+    }
+    case "shateki": {
+      const t = state.targets[target];
+      return t ? { ...state, cursor: t.x, cursorY: t.y } : state;
+    }
+    case "mogura":
+      return { ...state, cursor: state.moles[target]?.x ?? state.cursor };
+    case "bingo":
+      return state; // ビンゴは対象指定なし（玉を引くだけ）
+  }
+};
+
+/**
  * 「決定」操作。ゲーム別にカーソル位置の対象へ作用する。
  * rng は抽選系（kuji/senbiki/bingo）でのみ使う。
+ * target を渡すと、その対象にカーソルをスナップしてから判定する（クリック/タッチ用）。
  */
-export const commitMinigame = (state: MinigameState, rng: Rng): MinigamePress => {
+export const commitMinigame = (
+  input: MinigameState,
+  rng: Rng,
+  target?: number,
+): MinigamePress => {
+  const state = target === undefined ? input : snapCursor(input, target);
   switch (state.id) {
     case "kuji": {
       const next = pickLot(state, rng);
@@ -312,9 +469,11 @@ export const commitMinigame = (state: MinigameState, rng: Rng): MinigamePress =>
     }
     case "kingyo": {
       if (isFinished(state)) return { state, hit: false };
-      const idx = nearestIndex(
+      const idx = nearestIndex2D(
         state.cursor,
-        HIT_WINDOW.kingyo,
+        state.cursorY,
+        HIT_WINDOW.kingyoX,
+        HIT_WINDOW.kingyoY,
         state.fish,
         (i) => state.fish[i]?.alive ?? false,
       );
@@ -335,9 +494,11 @@ export const commitMinigame = (state: MinigameState, rng: Rng): MinigamePress =>
     }
     case "shateki": {
       if (isFinished(state)) return { state, hit: false };
-      const idx = nearestIndex(
+      const idx = nearestIndex2D(
         state.cursor,
-        HIT_WINDOW.shateki,
+        state.cursorY,
+        HIT_WINDOW.shatekiX,
+        HIT_WINDOW.shatekiY,
         state.targets,
         (i) => state.targets[i]?.alive ?? false,
       );
@@ -358,16 +519,17 @@ export const commitMinigame = (state: MinigameState, rng: Rng): MinigamePress =>
     }
     case "mogura": {
       if (isFinished(state)) return { state, hit: false };
+      // 出ていて、まだ叩かれていない（stunned 0）モグラだけ叩ける
       const idx = nearestIndex(
         state.cursor,
         MOGURA_WINDOW,
         state.moles,
-        (i) => state.moles[i]?.up ?? false,
+        (i) => (state.moles[i]?.up ?? false) && (state.moles[i]?.stunned ?? 0) <= 0,
       );
       const hit = idx >= 0;
-      // 叩いたモグラは引っ込む（時間でまた出てくる）
+      // 叩いたモグラは目を×にして固まり（stunned）、その後引っ込む
       const moles = state.moles.map((m, i) =>
-        i === idx ? { ...m, up: false, timer: MOGURA_DOWN } : m,
+        i === idx ? { ...m, stunned: MOGURA_STUN } : m,
       ) as readonly Mole[];
       return {
         state: {
@@ -389,7 +551,8 @@ export const isFinished = (state: MinigameState): boolean => {
     case "kuji":
       return state.picked !== undefined;
     case "yoyo":
-      return state.triesLeft === 0 || state.balloons.every((b) => !b.alive);
+      // 1 つ釣れたら終わり。外し切る（triesLeft 0）か全部消えても終了
+      return state.caught >= 1 || state.triesLeft === 0 || state.balloons.every((b) => !b.alive);
     case "kingyo":
       return state.poiLeft === 0 || state.fish.every((f) => !f.alive);
     case "shateki":
@@ -399,7 +562,8 @@ export const isFinished = (state: MinigameState): boolean => {
     case "mogura":
       return state.triesLeft === 0;
     case "bingo":
-      return state.bingo || state.drawn.length >= 9;
+      // ビンゴになるか、玉を引ける回数を使い切ったら終了
+      return state.bingo || state.drawn.length >= BINGO_DRAWS;
   }
 };
 

@@ -8,8 +8,11 @@ export type GameAction =
   | { readonly kind: "close-dialog" }
   | { readonly kind: "eat"; readonly item: ItemId }
   | { readonly kind: "start-minigame" }
-  /** ミニゲームの「決定」。カーソル位置の対象に作用する（引く/すくう/撃つ/叩く/玉引き） */
-  | { readonly kind: "minigame-commit"; readonly rng: Rng }
+  /**
+   * ミニゲームの「決定」。カーソル位置の対象に作用する（引く/すくう/撃つ/叩く/玉引き）。
+   * target を渡すと、その対象（クリック/タッチで選んだ index）に作用する。
+   */
+  | { readonly kind: "minigame-commit"; readonly rng: Rng; readonly target?: number }
   | { readonly kind: "retry-minigame" }
   | { readonly kind: "exit-minigame" };
 
@@ -33,10 +36,10 @@ export type ActionResult = {
 const noEvents = (state: GameState): ActionResult => ({ state, events: [] });
 
 /** ミニゲームの「決定」結果を状態 + イベントへ反映する */
-export const applyCommit = (state: GameState, rng: Rng): ActionResult => {
+export const applyCommit = (state: GameState, rng: Rng, target?: number): ActionResult => {
   if (state.mode.kind !== "minigame") return noEvents(state);
   const before = state.mode.game;
-  const committed = commitMinigame(before, rng);
+  const committed = commitMinigame(before, rng, target);
   if (committed.state === before) return noEvents(state); // 終了後など、何も起きない決定
 
   return {
@@ -71,7 +74,7 @@ export const applyAction = (state: GameState, action: GameAction): ActionResult 
       return noEvents({ ...state, mode: { kind: "minigame", game: initMinigame(stallId) } });
     }
     case "minigame-commit": {
-      return applyCommit(state, action.rng);
+      return applyCommit(state, action.rng, action.target);
     }
     case "retry-minigame": {
       if (state.mode.kind !== "minigame") return noEvents(state);

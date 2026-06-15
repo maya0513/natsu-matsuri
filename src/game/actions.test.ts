@@ -80,7 +80,8 @@ describe("applyAction: ミニゲーム", () => {
       game: {
         id: "kingyo",
         cursor,
-        fish: [{ x: 0.5, y: 0.5, dir: 1, speed: 0.2, alive: true }],
+        cursorY: 0.5,
+        fish: [{ x: 0.5, y: 0.5, vx: 0.1, vy: 0, phase: 0, alive: true }],
         poiLeft,
         caught,
       },

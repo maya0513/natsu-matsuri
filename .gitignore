@@ -5,6 +5,5 @@ coverage/
 .DS_Store
 playwright-report/
 test-results/
-docs/
 
 TODO.md

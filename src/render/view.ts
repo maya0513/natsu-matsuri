@@ -18,6 +18,8 @@ export type GameView = {
   readonly render: (state: GameState) => void;
   /** firework-launched イベント受信時に呼ぶ */
   readonly spawnFirework: (seed: number, time: number) => void;
+  /** 画面座標（clientX/Y）でミニゲーム内部空間の対象を拾う。なければ undefined */
+  readonly pickAt: (clientX: number, clientY: number) => number | undefined;
   readonly dispose: () => void;
 };
 
@@ -131,6 +133,12 @@ export const createGameView = async (
     },
     spawnFirework: (seed, time) => {
       fireworks.spawn(seed, time);
+    },
+    pickAt: (clientX, clientY) => {
+      const rect = renderer.domElement.getBoundingClientRect();
+      const x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      const y = -((clientY - rect.top) / rect.height) * 2 + 1;
+      return interior.pick(x, y);
     },
     dispose: () => {
       window.removeEventListener("resize", onResize);

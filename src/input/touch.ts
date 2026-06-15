@@ -121,16 +121,17 @@ export const createTouchInput = (parent: HTMLElement = document.body): InputSour
   overlay.appendChild(button);
   parent.appendChild(overlay);
 
-  // 売買ダイアログ中は操作系を丸ごと隠す（操作はモーダル内のボタンで完結）。
-  // ミニゲーム中はスティックだけ残す: ←→ でカーソル（ポイ/照準等）を動かすため。
-  // 決定はモーダルの「◯◯する」ボタンをタップして行うので、アクションボタンは隠す。
+  // 売買ダイアログ中もミニゲーム中も操作系（スティック＋ボタン）を丸ごと隠す。
+  // ミニゲームは「対象を直接タップ」で遊ぶ（main.ts の pick）ので仮想スティックは不要。
+  // 決定/やめるはモーダル内ボタンをタップ。これで操作系とモーダルの被りを解消する。
   // bridge の signal が変化したときだけ走るので毎フレームの負荷はない。
   const stopEffect = effect(() => {
     const inDialog = dialogStallSig.value !== undefined;
     const inMinigame = minigameSig.value !== undefined;
-    overlay.style.display = inDialog ? "none" : "block";
-    button.style.display = inMinigame ? "none" : "block";
-    if (inDialog || inMinigame) {
+    const hidden = inDialog || inMinigame;
+    overlay.style.display = hidden ? "none" : "block";
+    button.style.display = "block";
+    if (hidden) {
       // ドラッグ中に隠れても方向が残らないよう入力をリセット
       activePointer = undefined;
       setKnob(0, 0);

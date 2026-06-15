@@ -5,6 +5,7 @@ import {
   GROUND_TILE_TEXTURE,
   HELD_SHEET,
   LANTERN_TEXTURE,
+  MINIGAME_SHEET,
   NPC_SHEET,
   PATH_TILE_TEXTURE,
   PLAYER_SHEET,
@@ -22,6 +23,7 @@ export type GameTextures = {
   readonly npc: THREE.Texture;
   readonly stalls: THREE.Texture;
   readonly held: THREE.Texture;
+  readonly minigame: THREE.Texture;
   readonly torii: THREE.Texture;
   readonly shrine: THREE.Texture;
   readonly yagura: THREE.Texture;
@@ -50,6 +52,7 @@ export const loadGameTextures = async (): Promise<GameTextures> => {
     npc,
     stalls,
     held,
+    minigame,
     torii,
     shrine,
     yagura,
@@ -65,6 +68,7 @@ export const loadGameTextures = async (): Promise<GameTextures> => {
     load(loader, NPC_SHEET.url),
     load(loader, STALL_SHEET.url),
     load(loader, HELD_SHEET.url),
+    load(loader, MINIGAME_SHEET.url),
     load(loader, TORII_TEXTURE.url),
     load(loader, SHRINE_TEXTURE.url),
     load(loader, YAGURA_TEXTURE.url),
@@ -81,6 +85,7 @@ export const loadGameTextures = async (): Promise<GameTextures> => {
     npc,
     stalls,
     held,
+    minigame,
     torii,
     shrine,
     yagura,

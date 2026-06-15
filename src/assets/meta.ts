@@ -89,6 +89,29 @@ export const HELD_SHEET = {
   ],
 } as const;
 
+/** ミニゲーム屋台の小物シート（泳ぐ金魚・もぐら・射的景品など）。16px 作画 ×2 = 32px */
+export const MINIGAME_SHEET = {
+  url: "/assets/minigame.png",
+  frameW: 32,
+  frameH: 32,
+  order: [
+    "fish-red",
+    "fish-black",
+    "fish-calico",
+    "mole",
+    "mole-hit",
+    "prize-bear",
+    "prize-ball",
+    "prize-top",
+    "prize-robot",
+    "yoyo-0",
+    "yoyo-1",
+    "yoyo-2",
+    "yoyo-3",
+    "yoyo-4",
+  ],
+} as const;
+
 export const TORII_TEXTURE = { url: "/assets/torii.png", w: 160, h: 160 } as const;
 export const SHRINE_TEXTURE = { url: "/assets/shrine.png", w: 208, h: 144 } as const;
 export const YAGURA_TEXTURE = { url: "/assets/yagura.png", w: 112, h: 160 } as const;

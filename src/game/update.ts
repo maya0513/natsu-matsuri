@@ -31,7 +31,10 @@ export const update = (state: GameState, intent: Intent, dt: number, rng: Rng): 
     // 「決定」操作は UI から dispatch される。
     working = {
       ...working,
-      mode: { kind: "minigame", game: stepMinigame(working.mode.game, dt, intent.move.x) },
+      mode: {
+        kind: "minigame",
+        game: stepMinigame(working.mode.game, dt, intent.move.x, intent.move.y),
+      },
     };
   }
 

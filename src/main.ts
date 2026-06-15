@@ -46,6 +46,21 @@ mountUi(uiRoot, dispatch, () => audio.toggleSound());
 
 let state: GameState = initialGameState;
 
+// ミニゲーム中、3D の対象を直接クリック/タップで選ぶ（十字キーと併存）。
+// キャンバス上の操作だけを拾い、モーダルのボタンやタッチUIは無視する。
+window.addEventListener("pointerdown", (e) => {
+  if (state.mode.kind !== "minigame") return;
+  if (!(e.target instanceof HTMLCanvasElement)) return;
+  const target = view.pickAt(e.clientX, e.clientY);
+  // 対象を選べたら決定。ビンゴは対象がない（盤面どこでも玉を引く）ので無条件に決定。
+  if (target === undefined && state.mode.game.id !== "bingo") return;
+  dispatch({
+    kind: "minigame-commit",
+    rng: Math.random,
+    ...(target !== undefined ? { target } : {}),
+  });
+});
+
 // イベント → 演出・音へのディスパッチ
 const handleEvents = (events: readonly GameEvent[]): void => {
   for (const e of events) {
